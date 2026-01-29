@@ -99,7 +99,13 @@ export function generateOptionsTable(command: Command): string {
   output += '  ' + '─'.repeat(borderLength) + '\n';
 
   // Header
-  output += '  ' + 'FLAG'.padEnd(flagWidth) + 'TYPE'.padEnd(typeWidth) + 'REQUIRED'.padEnd(reqWidth) + 'DESCRIPTION'.padEnd(descWidth) + '\n';
+  output +=
+    '  ' +
+    'FLAG'.padEnd(flagWidth) +
+    'TYPE'.padEnd(typeWidth) +
+    'REQUIRED'.padEnd(reqWidth) +
+    'DESCRIPTION'.padEnd(descWidth) +
+    '\n';
 
   // Header separator
   output += '  ' + '─'.repeat(borderLength) + '\n';
@@ -119,10 +125,17 @@ export function generateOptionsTable(command: Command): string {
     const reqPad = reqWidth - getVisualLength(reqCell);
     const descPad = descWidth - getVisualLength(descCell);
 
-    output += '  ' + flagCell + ' '.repeat(Math.max(0, flagPad)) +
-             typeCell + ' '.repeat(Math.max(0, typePad)) +
-             reqCell + ' '.repeat(Math.max(0, reqPad)) +
-             descCell + ' '.repeat(Math.max(0, descPad)) + '\n';
+    output +=
+      '  ' +
+      flagCell +
+      ' '.repeat(Math.max(0, flagPad)) +
+      typeCell +
+      ' '.repeat(Math.max(0, typePad)) +
+      reqCell +
+      ' '.repeat(Math.max(0, reqPad)) +
+      descCell +
+      ' '.repeat(Math.max(0, descPad)) +
+      '\n';
   }
 
   // Bottom border
@@ -269,7 +282,13 @@ export function getGlobalOptionsTable(): string {
   output += '  ' + '─'.repeat(borderLength) + '\n';
 
   // Header
-  output += '  ' + 'FLAG'.padEnd(flagWidth) + 'TYPE'.padEnd(typeWidth) + 'REQUIRED'.padEnd(reqWidth) + 'DESCRIPTION'.padEnd(descWidth) + '\n';
+  output +=
+    '  ' +
+    'FLAG'.padEnd(flagWidth) +
+    'TYPE'.padEnd(typeWidth) +
+    'REQUIRED'.padEnd(reqWidth) +
+    'DESCRIPTION'.padEnd(descWidth) +
+    '\n';
 
   // Header separator
   output += '  ' + '─'.repeat(borderLength) + '\n';
@@ -286,10 +305,17 @@ export function getGlobalOptionsTable(): string {
     const reqPad = reqWidth - getVisualLength(reqCell);
     const descPad = descWidth - getVisualLength(descCell);
 
-    output += '  ' + flagCell + ' '.repeat(Math.max(0, flagPad)) +
-             typeCell + ' '.repeat(Math.max(0, typePad)) +
-             reqCell + ' '.repeat(Math.max(0, reqPad)) +
-             descCell + ' '.repeat(Math.max(0, descPad)) + '\n';
+    output +=
+      '  ' +
+      flagCell +
+      ' '.repeat(Math.max(0, flagPad)) +
+      typeCell +
+      ' '.repeat(Math.max(0, typePad)) +
+      reqCell +
+      ' '.repeat(Math.max(0, reqPad)) +
+      descCell +
+      ' '.repeat(Math.max(0, descPad)) +
+      '\n';
   }
 
   // Bottom border
