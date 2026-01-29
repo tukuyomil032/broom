@@ -1,5 +1,5 @@
 /**
- * Status command - Real-time system monitoring (mole-style TUI)
+ * Status command - Real-time system monitoring (Multiple preset designs)
  */
 import blessed from 'blessed';
 import { Command } from 'commander';
@@ -7,12 +7,16 @@ import * as si from 'systeminformation';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import { enhanceCommandHelp } from '../utils/help.js';
+import { loadConfig } from '../utils/config.js';
+import { getMonitorRenderer } from '../ui/monitors.js';
+import type { MonitorData } from '../ui/monitors.js';
 
 const execAsync = promisify(exec);
 
 interface StatusOptions {
   interval?: number;
   broom?: boolean;
+  preset?: number;
 }
 
 // Broom sweeping animation frames
@@ -41,73 +45,6 @@ const ASCII_BROOM_FRAMES = [
 ];
 
 /**
- * Format bytes to human readable
- */
-function formatBytes(bytes: number, decimals = 1): string {
-  if (bytes === 0) return '0 B';
-  const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(decimals)) + ' ' + sizes[i];
-}
-
-/**
- * Format speed (bytes per second)
- */
-function formatSpeed(bytesPerSec: number): string {
-  if (bytesPerSec < 1024) return bytesPerSec.toFixed(2) + ' B/s';
-  if (bytesPerSec < 1024 * 1024) return (bytesPerSec / 1024).toFixed(2) + ' KB/s';
-  return (bytesPerSec / 1024 / 1024).toFixed(2) + ' MB/s';
-}
-
-/**
- * Create a horizontal bar with gradient colors
- */
-function createColoredBar(percent: number, width: number): string {
-  const filled = Math.round((percent / 100) * width);
-  let bar = '';
-
-  for (let i = 0; i < filled; i++) {
-    const ratio = i / width;
-    if (ratio < 0.5) {
-      bar += '{green-fg}█{/green-fg}';
-    } else if (ratio < 0.75) {
-      bar += '{yellow-fg}█{/yellow-fg}';
-    } else {
-      bar += '{red-fg}█{/red-fg}';
-    }
-  }
-
-  bar += '{black-fg}' + '░'.repeat(width - filled) + '{/black-fg}';
-  return bar;
-}
-
-/**
- * Create simple colored bar
- */
-function createSimpleBar(percent: number, width: number, color: string = 'green'): string {
-  const filled = Math.round((percent / 100) * width);
-  return `{${color}-fg}${'█'.repeat(filled)}{/${color}-fg}{black-fg}${'░'.repeat(width - filled)}{/black-fg}`;
-}
-
-/**
- * Calculate system health score (0-100)
- */
-function calculateHealth(
-  cpuUsage: number,
-  memUsage: number,
-  diskUsage: number,
-  batteryPercent: number
-): number {
-  const cpuScore = Math.max(0, 100 - cpuUsage);
-  const memScore = Math.max(0, 100 - memUsage);
-  const diskScore = Math.max(0, 100 - diskUsage);
-  const batteryScore = batteryPercent;
-
-  return Math.round(cpuScore * 0.3 + memScore * 0.3 + diskScore * 0.2 + batteryScore * 0.2);
-}
-
-/**
  * Get local IP address
  */
 async function getLocalIP(): Promise<string> {
@@ -127,14 +64,14 @@ async function getLocalIP(): Promise<string> {
  */
 async function getTopProcesses(): Promise<Array<{ name: string; cpu: number }>> {
   try {
-    const { stdout } = await execAsync('ps -Ao comm,pcpu -r | head -6 | tail -5');
+    const { stdout } = await execAsync('ps -Ao comm,pcpu -r | head -11 | tail -10');
     return stdout
       .trim()
       .split('\n')
       .map((line) => {
         const parts = line.trim().split(/\s+/);
         const cpu = parseFloat(parts.pop() || '0');
-        const name = parts.join(' ').replace(/^.*\//, '').slice(0, 14);
+        const name = parts.join(' ').replace(/^.*\//, '').slice(0, 20);
         return { name, cpu };
       });
   } catch {
@@ -146,160 +83,58 @@ async function getTopProcesses(): Promise<Array<{ name: string; cpu: number }>> 
  * Run status TUI
  */
 export async function statusCommand(options: StatusOptions): Promise<void> {
+  const config = await loadConfig();
   const interval = (options.interval ?? 2) * 1000;
-  const showBroom = options.broom !== false; // Default to showing broom animation
+  const showBroom = options.broom !== false;
+  let preset: 1 | 2 | 3 | 4 | 5 = options.preset
+    ? (options.preset as 1 | 2 | 3 | 4 | 5)
+    : (config.monitorPreset as 1 | 2 | 3 | 4 | 5);
+  if (!preset || preset < 1 || preset > 5) {
+    preset = 1;
+  }
   let broomFrame = 0;
 
   // Create blessed screen
   const screen = blessed.screen({
     smartCSR: true,
-    title: 'Broom Status',
+    title: `Broom Status - Preset ${preset}`,
     fullUnicode: true,
   });
 
-  // Header bar
-  const header = blessed.box({
-    parent: screen,
-    top: 0,
-    left: 0,
-    width: '100%',
-    height: 1,
-    tags: true,
-    style: {
-      fg: 'white',
-      bg: 'black',
-    },
-  });
+  // Box element storage
+  const boxes: Record<string, blessed.Widgets.BoxElement> = {};
 
-  // Broom animation box (top right area)
-  const logoBox = blessed.box({
-    parent: screen,
-    top: 1,
-    right: 1,
-    width: 22,
-    height: 6,
-    tags: true,
-    style: {
-      fg: 'cyan',
-    },
-  });
+  // Create initial layout based on preset
+  createScreenLayout(preset, screen, boxes);
 
-  // CPU box (top left)
-  const cpuBox = blessed.box({
-    parent: screen,
-    top: 2,
-    left: 0,
-    width: '50%-1',
-    height: 8,
-    label: ' {yellow-fg}●{/yellow-fg} CPU ',
-    tags: true,
-    border: { type: 'line' },
-    style: {
-      border: { fg: 'cyan' },
-    },
-  });
-
-  // Memory box (top right)
-  const memBox = blessed.box({
-    parent: screen,
-    top: 2,
-    left: '50%',
-    width: '50%',
-    height: 8,
-    label: ' {red-fg}▣{/red-fg} Memory ',
-    tags: true,
-    border: { type: 'line' },
-    style: {
-      border: { fg: 'cyan' },
-    },
-  });
-
-  // Disk box (middle left)
-  const diskBox = blessed.box({
-    parent: screen,
-    top: 10,
-    left: 0,
-    width: '50%-1',
-    height: 6,
-    label: ' {blue-fg}▣{/blue-fg} Disk ',
-    tags: true,
-    border: { type: 'line' },
-    style: {
-      border: { fg: 'cyan' },
-    },
-  });
-
-  // Power box (middle right)
-  const powerBox = blessed.box({
-    parent: screen,
-    top: 10,
-    left: '50%',
-    width: '50%',
-    height: 6,
-    label: ' {green-fg}⚡{/green-fg} Power ',
-    tags: true,
-    border: { type: 'line' },
-    style: {
-      border: { fg: 'cyan' },
-    },
-  });
-
-  // Processes box (bottom left)
-  const procBox = blessed.box({
-    parent: screen,
-    top: 16,
-    left: 0,
-    width: '50%-1',
-    height: 8,
-    label: ' {magenta-fg}●{/magenta-fg} Processes ',
-    tags: true,
-    border: { type: 'line' },
-    style: {
-      border: { fg: 'cyan' },
-    },
-  });
-
-  // Network box (bottom right)
-  const netBox = blessed.box({
-    parent: screen,
-    top: 16,
-    left: '50%',
-    width: '50%',
-    height: 8,
-    label: ' {cyan-fg}↕{/cyan-fg} Network ',
-    tags: true,
-    border: { type: 'line' },
-    style: {
-      border: { fg: 'cyan' },
-    },
-  });
-
-  // Exit instructions
-  const footer = blessed.box({
-    parent: screen,
-    bottom: 0,
-    left: 0,
-    width: '100%',
-    height: 1,
-    tags: true,
-    content: '{gray-fg}Press q or Ctrl+C to exit | b to toggle broom animation{/gray-fg}',
-    style: {
-      fg: 'gray',
-    },
-  });
-
-  // Toggle broom animation
-  let broomVisible = showBroom;
-  screen.key(['b'], () => {
-    broomVisible = !broomVisible;
-    if (!broomVisible) {
-      logoBox.setContent('');
-    }
-  });
+  // Get renderer function for preset
+  let renderMonitor = getMonitorRenderer(preset);
 
   // Exit keys
   screen.key(['escape', 'q', 'C-c'], () => {
     process.exit(0);
+  });
+
+  // Change preset
+  screen.key(['p'], () => {
+    const nextPreset = (preset % 5) + 1;
+    console.error(`[DEBUG] Preset change requested: ${preset} -> ${nextPreset}`);
+    preset = nextPreset as 1 | 2 | 3 | 4 | 5;
+    screen.title = `Broom Status - Preset ${preset}`;
+
+    // Remove all children
+    screen.children.slice().forEach((child) => {
+      child.destroy();
+    });
+
+    // Clear box references
+    Object.keys(boxes).forEach((key) => {
+      delete boxes[key];
+    });
+
+    createScreenLayout(preset, screen, boxes);
+    renderMonitor = getMonitorRenderer(preset);
+    screen.render();
   });
 
   /**
@@ -327,116 +162,25 @@ export async function statusCommand(options: StatusOptions): Promise<void> {
       const mainDisk = disk.find((d) => d.mount === '/') || disk[0];
       const activeNet = netStats.find((n) => n.operstate === 'up') || netStats[0];
 
-      // Calculate health
-      const memUsage = (mem.used / mem.total) * 100;
-      const diskUsage = mainDisk?.use ?? 0;
-      const batteryPercent = battery.hasBattery ? battery.percent : 100;
-      const health = calculateHealth(cpuLoad.currentLoad, memUsage, diskUsage, batteryPercent);
+      const monitorData: MonitorData = {
+        cpuLoad,
+        cpuInfo,
+        cpuTemp,
+        mem,
+        disk,
+        battery,
+        netStats,
+        osInfo,
+        diskIO,
+        graphics,
+        localIP,
+        topProcs,
+        mainDisk,
+        activeNet,
+      };
 
-      // GPU info
-      const gpu = graphics.controllers?.[0];
-      const gpuName = gpu?.model ? `(${gpu.model.replace('Apple ', '').split(' ')[0]})` : '';
-
-      // Header
-      const memTotalStr = formatBytes(mem.total, 1);
-      const diskTotalStr = formatBytes(mainDisk?.size ?? 0, 1);
-      header.setContent(
-        `{bold}Broom Status{/bold}  {green-fg}●{/green-fg} Health {bold}{yellow-fg}${health}{/yellow-fg}{/bold}  ` +
-          `${osInfo.hostname.split('.')[0]} • ${cpuInfo.manufacturer} ${cpuInfo.brand} ${gpuName} • ` +
-          `${memTotalStr}/${diskTotalStr} • ${osInfo.distro} ${osInfo.release}`
-      );
-
-      // Broom animation
-      if (broomVisible) {
-        const frame = BROOM_FRAMES[broomFrame % BROOM_FRAMES.length];
-        logoBox.setContent(frame.join('\n'));
-        broomFrame++;
-      }
-
-      // CPU - show individual cores
-      const cpuCores = cpuLoad.cpus || [];
-      let cpuContent = '';
-
-      // Show up to 6 cores with their load
-      const coresToShow = cpuCores.slice(0, 6);
-      coresToShow.forEach((core: any, i: number) => {
-        const bar = createColoredBar(core.load, 12);
-        cpuContent += `Core${i + 1}  ${bar}  ${core.load.toFixed(1)}%\n`;
-      });
-
-      const temp = cpuTemp.main > 0 ? `@ ${cpuTemp.main.toFixed(1)}°C` : '';
-      const loadAvg = cpuLoad.avgLoad ? cpuLoad.avgLoad.toFixed(2) : '0.00';
-      cpuContent += `Load  ${loadAvg} / ${cpuLoad.currentLoad.toFixed(2)} ${temp}`;
-      cpuBox.setContent(cpuContent);
-
-      // Memory
-      const memUsedPercent = (mem.used / mem.total) * 100;
-      const memFreePercent = (mem.free / mem.total) * 100;
-      const swapUsedPercent = mem.swaptotal > 0 ? (mem.swapused / mem.swaptotal) * 100 : 0;
-
-      let memContent = '';
-      memContent += `Used    ${createColoredBar(memUsedPercent, 12)}  ${memUsedPercent.toFixed(1)}%\n`;
-      memContent += `Free    ${createSimpleBar(memFreePercent, 12, 'green')}  ${memFreePercent.toFixed(1)}%\n`;
-      memContent += `Swap    ${createColoredBar(swapUsedPercent, 12)}  ${swapUsedPercent.toFixed(1)}% (${formatBytes(mem.swapused)}/${formatBytes(mem.swaptotal)})\n`;
-      memContent += `Total ${formatBytes(mem.total)} / Avail ${formatBytes(mem.available)}`;
-      memBox.setContent(memContent);
-
-      // Disk
-      const diskPercent = mainDisk?.use ?? 0;
-      const readSpeed = diskIO?.rIO_sec ?? 0;
-      const writeSpeed = diskIO?.wIO_sec ?? 0;
-
-      let diskContent = '';
-      diskContent += `INTR   ${createColoredBar(diskPercent, 12)}  ${diskPercent.toFixed(1)}% (${formatBytes(mainDisk?.used ?? 0)}/${formatBytes(mainDisk?.size ?? 0)})\n`;
-      diskContent += `Read   {green-fg}${'█'.repeat(Math.min(6, Math.floor(readSpeed / 1024 / 1024) + 1))}{/green-fg}  ${formatSpeed(readSpeed)}\n`;
-      diskContent += `Write  {yellow-fg}${'█'.repeat(Math.min(6, Math.floor(writeSpeed / 1024 / 1024) + 1))}{/yellow-fg}  ${formatSpeed(writeSpeed)}`;
-      diskBox.setContent(diskContent);
-
-      // Power
-      let powerContent = '';
-      if (battery.hasBattery) {
-        const batteryColor = battery.percent > 20 ? 'green' : 'red';
-        const batteryBar = createSimpleBar(battery.percent, 12, batteryColor);
-        const healthPercent =
-          battery.maxCapacity && battery.designedCapacity
-            ? Math.round((battery.maxCapacity / battery.designedCapacity) * 100)
-            : 100;
-        const healthBar = createSimpleBar(Math.min(healthPercent, 100), 12, 'green');
-        const timeStr =
-          battery.timeRemaining > 0
-            ? `${Math.floor(battery.timeRemaining / 60)}:${String(Math.round(battery.timeRemaining % 60)).padStart(2, '0')}`
-            : '';
-        const chargingIcon = battery.isCharging ? '{yellow-fg}⚡{/yellow-fg}' : '';
-        const wattage = battery.currentCapacity ? `${Math.abs(battery.currentCapacity)}W` : '';
-
-        powerContent += `Level    ${batteryBar}  ${battery.percent.toFixed(0)}%\n`;
-        powerContent += `Health   ${healthBar}  ${healthPercent}%\n`;
-        powerContent += `${battery.isCharging ? 'Charging' : 'Battery'} • ${timeStr} • ${wattage} ${chargingIcon}\n`;
-        powerContent += `Normal • ${battery.cycleCount || 0} cycles`;
-      } else {
-        powerContent = 'No battery detected\n(Desktop or AC power)';
-      }
-      powerBox.setContent(powerContent);
-
-      // Processes - top by CPU
-      let procContent = '';
-      topProcs.forEach((proc) => {
-        const bar = createColoredBar(Math.min(proc.cpu, 100), 8);
-        procContent += `${proc.name.padEnd(14)} ${bar}  ${proc.cpu.toFixed(1)}%\n`;
-      });
-      procBox.setContent(procContent);
-
-      // Network
-      const rxSpeed = activeNet?.rx_sec ?? 0;
-      const txSpeed = activeNet?.tx_sec ?? 0;
-      const rxBars = Math.min(10, Math.max(1, Math.floor(rxSpeed / 1024 / 50)));
-      const txBars = Math.min(10, Math.max(1, Math.floor(txSpeed / 1024 / 50)));
-
-      let netContent = '';
-      netContent += `Down  {green-fg}${'█'.repeat(rxBars)}{/green-fg}${'░'.repeat(10 - rxBars)}  ${formatSpeed(rxSpeed)}\n`;
-      netContent += `Up    {yellow-fg}${'█'.repeat(txBars)}{/yellow-fg}${'░'.repeat(10 - txBars)}  ${formatSpeed(txSpeed)}\n\n`;
-      netContent += `${localIP}`;
-      netBox.setContent(netContent);
+      // Render using selected preset
+      await renderMonitor(screen, monitorData, boxes);
 
       screen.render();
     } catch (err) {
@@ -459,13 +203,175 @@ export async function statusCommand(options: StatusOptions): Promise<void> {
 }
 
 /**
+ * Create screen layout for different presets
+ */
+function createScreenLayout(
+  preset: 1 | 2 | 3 | 4 | 5,
+  screen: blessed.Widgets.Screen,
+  boxes: Record<string, blessed.Widgets.BoxElement>
+): void {
+  console.error(`[DEBUG] createScreenLayout called with preset: ${preset}`);
+  // Clear existing children safely
+  screen.children.slice().forEach((child) => {
+    if (child !== screen) {
+      child.destroy();
+    }
+  });
+
+  if (preset === 1) {
+    // Preset 1: Classic Grid Layout
+    const header = blessed.box({
+      parent: screen,
+      top: 0,
+      left: 0,
+      width: '100%',
+      height: 1,
+      tags: true,
+      name: 'header',
+      style: { fg: 'white', bg: 'black' },
+    });
+    boxes['header'] = header;
+
+    const cpuBox = blessed.box({
+      parent: screen,
+      top: 2,
+      left: 0,
+      width: '50%-1',
+      height: 8,
+      label: ' {yellow-fg}●{/yellow-fg} CPU ',
+      tags: true,
+      name: 'cpu',
+      border: { type: 'line' },
+      style: { border: { fg: 'cyan' } },
+    });
+    boxes['cpu'] = cpuBox;
+
+    const memBox = blessed.box({
+      parent: screen,
+      top: 2,
+      left: '50%',
+      width: '50%',
+      height: 8,
+      label: ' {red-fg}▣{/red-fg} Memory ',
+      tags: true,
+      name: 'mem',
+      border: { type: 'line' },
+      style: { border: { fg: 'cyan' } },
+    });
+    boxes['mem'] = memBox;
+
+    const diskBox = blessed.box({
+      parent: screen,
+      top: 10,
+      left: 0,
+      width: '50%-1',
+      height: 6,
+      label: ' {blue-fg}▣{/blue-fg} Disk ',
+      tags: true,
+      name: 'disk',
+      border: { type: 'line' },
+      style: { border: { fg: 'cyan' } },
+    });
+    boxes['disk'] = diskBox;
+
+    const netBox = blessed.box({
+      parent: screen,
+      top: 10,
+      left: '50%',
+      width: '50%',
+      height: 6,
+      label: ' {cyan-fg}↕{/cyan-fg} Network ',
+      tags: true,
+      name: 'net',
+      border: { type: 'line' },
+      style: { border: { fg: 'cyan' } },
+    });
+    boxes['net'] = netBox;
+
+    const procBox = blessed.box({
+      parent: screen,
+      top: 16,
+      left: 0,
+      width: '100%',
+      height: 7,
+      label: ' {magenta-fg}●{/magenta-fg} Processes ',
+      tags: true,
+      name: 'proc',
+      border: { type: 'line' },
+      style: { border: { fg: 'cyan' } },
+    });
+    boxes['proc'] = procBox;
+
+    blessed.box({
+      parent: screen,
+      bottom: 0,
+      left: 0,
+      width: '100%',
+      height: 1,
+      tags: true,
+      name: 'footer',
+      content: '{gray-fg}Press q or Ctrl+C to exit | p to change preset{/gray-fg}',
+      style: { fg: 'gray' },
+    });
+  } else {
+    // Presets 2-5: Single main content area
+    console.error(`[DEBUG] Creating layout for preset ${preset}`);
+    const header = blessed.box({
+      parent: screen,
+      top: 0,
+      left: 0,
+      width: '100%',
+      height: 2,
+      tags: true,
+      name: 'header',
+      border: { type: 'line' },
+      style: { border: { fg: 'cyan' } },
+    });
+    console.error('[DEBUG] header box created and assigning to boxes...');
+    boxes['header'] = header;
+    console.error('[DEBUG] boxes["header"] assigned:', boxes['header'] ? 'success' : 'failed');
+
+    const mainBox = blessed.box({
+      parent: screen,
+      top: 2,
+      left: 0,
+      width: '100%',
+      bottom: 1,
+      tags: true,
+      name: 'main',
+      border: { type: 'line' },
+      scrollable: true,
+      mouse: true,
+      keys: true,
+      style: { border: { fg: 'cyan' } },
+    });
+    console.error('[DEBUG] main box created and assigning to boxes...');
+    boxes['main'] = mainBox;
+    console.error('[DEBUG] boxes["main"] assigned:', boxes['main'] ? 'success' : 'failed');
+
+    blessed.box({
+      parent: screen,
+      bottom: 0,
+      left: 0,
+      width: '100%',
+      height: 1,
+      tags: true,
+      name: 'footer',
+      content: '{gray-fg}Press q or Ctrl+C to exit | p to change preset{/gray-fg}',
+      style: { fg: 'gray' },
+    });
+  }
+}
+
+/**
  * Create status command
  */
 export function createStatusCommand(): Command {
   const cmd = new Command('status')
-    .description('Real-time system monitoring dashboard')
+    .description('Real-time system monitoring dashboard (5 presets available)')
     .option('-i, --interval <seconds>', 'Update interval in seconds (default: 2)', parseInt)
     .option('--no-broom', 'Disable broom animation')
+    .option('-p, --preset <number>', 'Monitor preset (1-5)', parseInt)
     .action(async (options) => {
       await statusCommand(options);
     });
