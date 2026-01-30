@@ -339,7 +339,9 @@ async function configureMonitorPreset(config: typeof DEFAULT_CONFIG): Promise<vo
   console.log();
 
   const choice = await inputPrompt('Select preset (1-5):');
-  if (!choice) return;
+  if (!choice) {
+    return;
+  }
 
   const preset = parseInt(choice) as 1 | 2 | 3 | 4 | 5;
 
@@ -422,7 +424,9 @@ async function manageWhitelist(config: typeof DEFAULT_CONFIG): Promise<void> {
       case '2':
         if (config.whitelist.length > 0) {
           const index = await inputPrompt('Enter index to remove:');
-          if (!index) break;
+          if (!index) {
+            break;
+          }
           const idx = parseInt(index) - 1;
           if (idx >= 0 && idx < config.whitelist.length) {
             const removed = config.whitelist.splice(idx, 1)[0];
@@ -478,7 +482,9 @@ async function manageBlacklist(config: typeof DEFAULT_CONFIG): Promise<void> {
       case '2':
         if (config.blacklist.length > 0) {
           const index = await inputPrompt('Enter index to remove:');
-          if (!index) break;
+          if (!index) {
+            break;
+          }
           const idx = parseInt(index) - 1;
           if (idx >= 0 && idx < config.blacklist.length) {
             const removed = config.blacklist.splice(idx, 1)[0];

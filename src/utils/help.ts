@@ -205,7 +205,9 @@ export function formatCommandHelp(command: Command): string {
  * Extract examples from command description
  */
 function getExamplesFromDescription(description?: string): string[] {
-  if (!description) return [];
+  if (!description) {
+    return [];
+  }
 
   const examples = [];
 

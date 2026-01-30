@@ -29,7 +29,9 @@ export interface MonitorData {
  * Format bytes to human readable
  */
 export function formatBytes(bytes: number, decimals = 1): string {
-  if (bytes === 0) return '0 B';
+  if (bytes === 0) {
+    return '0 B';
+  }
   const k = 1024;
   const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
@@ -40,8 +42,12 @@ export function formatBytes(bytes: number, decimals = 1): string {
  * Format speed (bytes per second)
  */
 export function formatSpeed(bytesPerSec: number): string {
-  if (bytesPerSec < 1024) return bytesPerSec.toFixed(2) + ' B/s';
-  if (bytesPerSec < 1024 * 1024) return (bytesPerSec / 1024).toFixed(2) + ' KB/s';
+  if (bytesPerSec < 1024) {
+    return bytesPerSec.toFixed(2) + ' B/s';
+  }
+  if (bytesPerSec < 1024 * 1024) {
+    return (bytesPerSec / 1024).toFixed(2) + ' KB/s';
+  }
   return (bytesPerSec / 1024 / 1024).toFixed(2) + ' MB/s';
 }
 
@@ -167,12 +173,24 @@ export async function renderMonitorPreset1(
   });
 
   // Update box contents using boxes object
-  if (boxes['header']) boxes['header'].setContent(headerContent);
-  if (boxes['cpu']) boxes['cpu'].setContent(cpuContent);
-  if (boxes['mem']) boxes['mem'].setContent(memContent);
-  if (boxes['disk']) boxes['disk'].setContent(diskContent);
-  if (boxes['net']) boxes['net'].setContent(netContent);
-  if (boxes['proc']) boxes['proc'].setContent(procContent);
+  if (boxes['header']) {
+    boxes['header'].setContent(headerContent);
+  }
+  if (boxes['cpu']) {
+    boxes['cpu'].setContent(cpuContent);
+  }
+  if (boxes['mem']) {
+    boxes['mem'].setContent(memContent);
+  }
+  if (boxes['disk']) {
+    boxes['disk'].setContent(diskContent);
+  }
+  if (boxes['net']) {
+    boxes['net'].setContent(netContent);
+  }
+  if (boxes['proc']) {
+    boxes['proc'].setContent(procContent);
+  }
 }
 
 /**
@@ -303,7 +321,9 @@ export async function renderMonitorPreset3(
     content += `${proc.name.padEnd(15)} ${proc.cpu.toFixed(1)}%\n`;
   });
 
-  if (boxes['main']) boxes['main'].setContent(content);
+  if (boxes['main']) {
+    boxes['main'].setContent(content);
+  }
 }
 
 /**
@@ -363,8 +383,12 @@ export async function renderMonitorPreset4(
     content += `         ${proc.name.padEnd(14)}  ${proc.cpu.toFixed(1)}%\n`;
   });
 
-  if (boxes['header']) boxes['header'].setContent(headerContent);
-  if (boxes['main']) boxes['main'].setContent(content);
+  if (boxes['header']) {
+    boxes['header'].setContent(headerContent);
+  }
+  if (boxes['main']) {
+    boxes['main'].setContent(content);
+  }
 }
 
 /**
@@ -433,8 +457,12 @@ export async function renderMonitorPreset5(
     content += `${i + 1}. ${proc.name.padEnd(16)} ${proc.cpu.toFixed(1)}%\n`;
   });
 
-  if (boxes['header']) boxes['header'].setContent(headerContent);
-  if (boxes['main']) boxes['main'].setContent(content);
+  if (boxes['header']) {
+    boxes['header'].setContent(headerContent);
+  }
+  if (boxes['main']) {
+    boxes['main'].setContent(content);
+  }
 }
 
 /**

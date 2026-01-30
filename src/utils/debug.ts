@@ -30,7 +30,9 @@ export function isDebugEnabled(): boolean {
  * Log debug message
  */
 export function debug(message: string, ...args: any[]): void {
-  if (!debugMode) return;
+  if (!debugMode) {
+    return;
+  }
 
   const timestamp = new Date().toISOString().split('T')[1].slice(0, 12);
   console.log(chalk.dim(`[${timestamp}] `) + chalk.magenta('[DEBUG] ') + message, ...args);
@@ -40,7 +42,9 @@ export function debug(message: string, ...args: any[]): void {
  * Log debug object
  */
 export function debugObj(label: string, obj: any): void {
-  if (!debugMode) return;
+  if (!debugMode) {
+    return;
+  }
 
   const timestamp = new Date().toISOString().split('T')[1].slice(0, 12);
   console.log(chalk.dim(`[${timestamp}] `) + chalk.magenta('[DEBUG] ') + chalk.cyan(label + ':'));
@@ -51,7 +55,9 @@ export function debugObj(label: string, obj: any): void {
  * Log debug section header
  */
 export function debugSection(title: string): void {
-  if (!debugMode) return;
+  if (!debugMode) {
+    return;
+  }
 
   console.log();
   console.log(chalk.magenta('━'.repeat(60)));
@@ -63,7 +69,9 @@ export function debugSection(title: string): void {
  * Log debug timing
  */
 export function debugTime(label: string): () => void {
-  if (!debugMode) return () => {};
+  if (!debugMode) {
+    return () => {};
+  }
 
   const start = performance.now();
   debug(`Starting: ${label}`);
@@ -93,7 +101,9 @@ export async function debugAsync<T>(label: string, fn: () => Promise<T>): Promis
  * Log file operation
  */
 export function debugFile(operation: string, path: string, details?: string): void {
-  if (!debugMode) return;
+  if (!debugMode) {
+    return;
+  }
 
   const opColors: Record<string, (s: string) => string> = {
     scan: chalk.blue,
@@ -116,7 +126,9 @@ export function debugRisk(
   level: 'safe' | 'moderate' | 'risky',
   reason?: string
 ): void {
-  if (!debugMode) return;
+  if (!debugMode) {
+    return;
+  }
 
   const colors: Record<string, (s: string) => string> = {
     safe: chalk.green,

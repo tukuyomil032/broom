@@ -54,8 +54,12 @@ function compareVersions(current: string, latest: string): number {
   for (let i = 0; i < 3; i++) {
     const c = currentParts[i] || 0;
     const l = latestParts[i] || 0;
-    if (l > c) return 1; // newer
-    if (l < c) return -1; // older
+    if (l > c) {
+      return 1; // newer
+    }
+    if (l < c) {
+      return -1; // older
+    }
   }
   return 0; // same
 }

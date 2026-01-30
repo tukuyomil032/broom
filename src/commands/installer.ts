@@ -54,13 +54,24 @@ function getSourceLabel(filePath: string): string {
   const home = expandPath('~');
   const path = filePath.toLowerCase();
 
-  if (path.includes('/downloads')) return 'Downloads';
-  if (path.includes('/desktop')) return 'Desktop';
-  if (path.includes('/homebrew')) return 'Homebrew';
-  if (path.includes('/clouddocs') || path.includes('/icloud')) return 'iCloud';
-  if (path.includes('/steam')) return 'Steam';
-  if (path.includes('/mail')) return 'Mail';
-
+  if (path.includes('/downloads')) {
+    return 'Downloads';
+  }
+  if (path.includes('/desktop')) {
+    return 'Desktop';
+  }
+  if (path.includes('/homebrew')) {
+    return 'Homebrew';
+  }
+  if (path.includes('/clouddocs') || path.includes('/icloud')) {
+    return 'iCloud';
+  }
+  if (path.includes('/steam')) {
+    return 'Steam';
+  }
+  if (path.includes('/mail')) {
+    return 'Mail';
+  }
   return 'Other';
 }
 
