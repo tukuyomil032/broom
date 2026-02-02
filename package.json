@@ -1,5 +1,5 @@
 {
-  "name": "broom",
+  "name": "@tukuyomil032/broom",
   "private": false,
   "version": "1.0.0",
   "description": "🧹 macOS Disk Cleanup CLI - Clean up caches, logs, trash, browser data, dev artifacts, and more",

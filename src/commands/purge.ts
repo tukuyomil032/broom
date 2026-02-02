@@ -157,7 +157,9 @@ async function findTargetItems(
   // Deduplicate by path
   const seen = new Set<string>();
   return items.filter((item) => {
-    if (seen.has(item.path)) return false;
+    if (seen.has(item.path)) {
+      return false;
+    }
     seen.add(item.path);
     return true;
   });
