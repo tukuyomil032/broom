@@ -158,16 +158,18 @@ broom restore --tag "before-cleanup"
 
 ### コアコマンド
 
-| `mo optimize` | `broom optimize` | システム最適化 | ✅ 完了 |
-| `mo analyze` | `broom analyze` | ディスク使用量分析 | ✅ 完了 |
-| `mo status` | `broom status` | リアルタイムシステム監視 | ✅ 完了 (blessed TUI) |
-| `mo purge` | `broom purge` | プロジェクトアーティファクト削除 | ✅ 完了 |
-| `mo installer` | `broom installer` | インストーラーファイル削除 | ✅ 完了 |
-| `mo touchid` | `broom touchid` | Touch ID for sudo 設定 | ✅ 完了 |
-| `mo completion` | `broom completion` | シェル補完スクリプト生成 | ✅ 完了 |
-| `mo update` | `broom update` | 自己アップデート | ✅ 完了 |
-| `mo remove` | `broom remove` | アンインストール | ✅ 完了 |
-| - | `broom config` | 設定管理 | ✅ 追加機能 |
+| `mole` コマンド | `broom` コマンド   | 説明                           | 状態                    |
+| --------------- | ------------------ | ------------------------------ | ----------------------- |
+| `mo optimize`   | `broom optimize`   | システム最適化                 | ✅ 完了                 |
+| `mo analyze`    | `broom analyze`    | ディスク使用量分析             | ✅ 完了                 |
+| `mo status`     | `broom status`     | リアルタイムシステム監視       | ✅ 完了 (blessed TUI)   |
+| `mo purge`      | `broom purge`      | プロジェクトアーティファクト削除 | ✅ 完了                 |
+| `mo installer`  | `broom installer`  | インストーラーファイル削除     | ✅ 完了                 |
+| `mo touchid`    | `broom touchid`    | Touch ID (sudo) 設定           | ✅ 完了                 |
+| `mo completion` | `broom completion` | シェル補完スクリプト生成       | ✅ 完了                 |
+| `mo update`     | `broom update`     | 自己アップデート               | ✅ 完了                 |
+| `mo remove`     | `broom remove`     | アンインストール               | ✅ 完了                 |
+| -               | `broom config`     | 設定管理                       | ✅ 追加機能             |
 
 ### オプションマッピング
 
