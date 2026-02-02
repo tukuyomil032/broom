@@ -427,8 +427,8 @@ MIT License - see the [LICENSE](../../LICENSE) file for details.
 
 ## 🔗 Links
 
-- [GitHub Repository](https://github.com/your-username/broom)
-- [Issue Tracker](https://github.com/your-username/broom/issues)
+- [GitHub Repository](https://github.com/tukuyomil032/broom)
+- [Issue Tracker](https://github.com/tukuyomil032/broom/issues)
 - [Main README](../../README.md)
 - [Japanese docs](../ja_jp/README.md)
 
