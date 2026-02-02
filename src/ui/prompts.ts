@@ -6,6 +6,9 @@ import chalk from 'chalk';
 import { formatSize } from '../utils/fs.js';
 import type { CleanableItem, ScanResult, AppInfo, Category } from '../types/index.js';
 
+// Re-export inquirer functions for direct use
+export { select, confirm, checkbox, input };
+
 export interface SelectableItem<T> {
   name: string;
   value: T;

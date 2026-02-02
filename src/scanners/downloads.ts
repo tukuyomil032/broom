@@ -6,7 +6,7 @@ import { join } from 'path';
 import { BaseScanner } from './base.js';
 import type { Category, ScanResult, CleanableItem, ScannerOptions } from '../types/index.js';
 import { paths } from '../utils/paths.js';
-import { exists, getSize } from '../utils/fs.js';
+import { exists, getSize, isExcludedPath } from '../utils/fs.js';
 
 export class DownloadsScanner extends BaseScanner {
   category: Category = {
@@ -38,6 +38,11 @@ export class DownloadsScanner extends BaseScanner {
         }
 
         const entryPath = join(paths.downloads, entry);
+
+        // Skip excluded paths (iCloud Drive, etc.)
+        if (isExcludedPath(entryPath)) {
+          continue;
+        }
 
         try {
           const stats = await stat(entryPath);

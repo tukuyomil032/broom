@@ -6,12 +6,24 @@ broom は、Shell + Go + Makefile で書かれた macOS ディスククリーン
 
 ---
 
+## 📋 ドキュメント一覧
+
+- **[COMMANDS.md](COMMANDS.md)** - 全コマンドの完全リファレンス
+- **[HTML_REPORT.md](HTML_REPORT.md)** - HTMLレポート機能の詳細
+- **[SCANNERS.md](SCANNERS.md)** - スキャナー実装の詳細
+- **[MIGRATION.md](MIGRATION.md)** - Moleからの移行ガイド
+- **[README.md](README.md)** - このファイル（プロジェクト概要）
+
+---
+
 ## 📋 目次
 
 - [プロジェクト概要](#プロジェクト概要)
+- [クイックスタート](#クイックスタート)
+- [主要機能](#主要機能)
+- [コマンド一覧](#コマンド一覧)
 - [mole との比較表](#mole-との比較表)
 - [アーキテクチャ](#アーキテクチャ)
-- [コマンド詳細](#コマンド詳細)
 - [使用技術](#使用技術)
 - [インストール](#インストール)
 - [開発](#開発)
@@ -25,6 +37,7 @@ broom は、Shell + Go + Makefile で書かれた macOS ディスククリーン
 - mole の全機能を TypeScript で再実装
 - コマンド名、オプション、UI/UXを mole と同等に
 - モダンな Node.js エコシステムの活用
+- さらなる機能拡張（HTMLレポート、重複ファイル検索など）
 
 ### 特徴
 
@@ -33,31 +46,128 @@ broom は、Shell + Go + Makefile で書かれた macOS ディスククリーン
 | **ディープクリーニング**     | キャッシュ、ログ、ブラウザデータなどを検出・削除             |
 | **スマートアンインストール** | アプリ本体 + 残留ファイルを完全削除                          |
 | **システム最適化**           | DNS フラッシュ、Spotlight 再構築など                         |
-| **ディスク分析**             | 容量の大きいフォルダを可視化                                 |
+| **ディスク分析**             | 容量の大きいフォルダを可視化（グラデーション付きグラフ）     |
 | **リアルタイム監視**         | CPU、メモリ、ディスク、ネットワークの TUI ダッシュボード     |
 | **プロジェクトパージ**       | node_modules、target、build などのビルドアーティファクト削除 |
+| **HTMLレポート**             | クリーンアップ結果をChart.js付きHTMLで出力                   |
+| **重複ファイル検索**         | ハッシュベースで重複を検出・削除                             |
+| **バックアップ・リストア**   | 削除前にファイルをバックアップ                               |
+| **スケジューラー**           | 定期的な自動クリーンアップ                                   |
+| **ディレクトリ監視**         | サイズ閾値を超えたら通知                                     |
+| **Touch ID対応**             | sudoをTouch IDで認証                                         |
+| **シェル補完**               | Bash/Zsh/Fish対応                                            |
 
 ---
 
-## 🔄 mole との比較表
+## 🚀 クイックスタート
 
-### コマンドマッピング
+```bash
+# インストール
+git clone https://github.com/tukuyomil032/broom.git
+cd broom
+bun install
+bun run build
 
-| mole コマンド   | broom コマンド     | 機能                             | 実装状況              |
-| --------------- | ------------------ | -------------------------------- | --------------------- |
-| `mo`            | `broom`            | インタラクティブメニュー         | ✅ ヘルプ表示         |
-| `mo clean`      | `broom clean`      | システムクリーンアップ           | ✅ 完了               |
-| `mo uninstall`  | `broom uninstall`  | アプリのアンインストール         | ✅ 完了               |
-| `mo optimize`   | `broom optimize`   | システム最適化                   | ✅ 完了               |
-| `mo analyze`    | `broom analyze`    | ディスク使用量分析               | ✅ 完了               |
-| `mo status`     | `broom status`     | リアルタイムシステム監視         | ✅ 完了 (blessed TUI) |
-| `mo purge`      | `broom purge`      | プロジェクトアーティファクト削除 | ✅ 完了               |
-| `mo installer`  | `broom installer`  | インストーラーファイル削除       | ✅ 完了               |
-| `mo touchid`    | `broom touchid`    | Touch ID for sudo 設定           | ✅ 完了               |
-| `mo completion` | `broom completion` | シェル補完スクリプト生成         | ✅ 完了               |
-| `mo update`     | `broom update`     | 自己アップデート                 | ✅ 完了               |
-| `mo remove`     | `broom remove`     | アンインストール                 | ✅ 完了               |
-| -               | `broom config`     | 設定管理                         | ✅ 追加機能           |
+# 基本的な使い方
+broom clean                    # インタラクティブクリーンアップ
+broom clean --dry-run          # プレビューモード
+broom clean --all --yes        # 自動クリーンアップ
+broom clean --report --open    # HTMLレポート生成
+
+broom analyze                  # ディスク分析
+broom status --watch           # システム監視
+broom uninstall                # アプリ削除
+```
+
+---
+
+## ✨ 主要機能
+
+### 1. ディープクリーニング (`broom clean`)
+
+- **カテゴリ別スキャン**: 安全性レベル別に分類
+- **インタラクティブ選択**: 削除するカテゴリを選択
+- **ドライランモード**: 削除せずにプレビュー
+- **HTMLレポート**: Chart.js付きの詳細レポート
+- **ホワイトリスト**: 重要なパスを保護
+
+**対応カテゴリ:**
+
+- ユーザーキャッシュ
+- ブラウザキャッシュ（Chrome, Safari, Firefox, Edge, Brave, Arc）
+- 開発キャッシュ（npm, yarn, pip, cargo, gradle）
+- Xcode DerivedData
+- Homebrew キャッシュ
+- Docker キャッシュ
+- iOS バックアップ
+- インストーラーファイル
+- ゴミ箱、ダウンロード（unsafe）
+
+### 2. ディスク分析 (`broom analyze`)
+
+- **ビジュアルグラフ**: グラデーション付き棒グラフ
+- **区切り線**: 20%ごとに縦線表示
+- **ドリルダウン**: ディレクトリを深く探索
+- **サイズソート**: 大きい順に表示
+- **カスタマイズ可能**: `--depth`, `--limit`オプション
+
+### 3. システム監視 (`broom status`)
+
+- **リアルタイム更新**: `--watch`でライブ監視
+- **包括的メトリクス**: CPU、メモリ、ディスク、ネットワーク
+- **プロセス情報**: トッププロセス表示
+- **温度監視**: CPU/GPU温度（対応ハードウェア）
+
+### 4. HTMLレポート機能
+
+クリーンアップ後にHTMLレポートを生成：
+
+```bash
+broom clean --report --open
+```
+
+**レポート内容:**
+
+- カテゴリ別円グラフ（Chart.js）
+- ディスク使用量の前後比較
+- 削除されたファイル一覧
+- 統計情報（削除サイズ、ファイル数、処理時間）
+- PDF印刷対応
+
+詳細は[HTML_REPORT.md](HTML_REPORT.md)を参照。
+
+### 5. 重複ファイル検索 (`broom duplicates`)
+
+- **スマートハッシング**: ファイルサイズで最適化
+- **インタラクティブモード**: 保持するファイルを選択
+- **ハードリンク対応**: 重複をハードリンクに置換
+- **クリック可能リンク**: Cmd+クリックでFinderを開く
+
+### 6. バックアップ・リストア
+
+```bash
+broom backup --path ~/Documents --tag "before-cleanup"
+broom restore --tag "before-cleanup"
+```
+
+---
+
+## 📚 コマンド一覧
+
+完全なコマンドリファレンスは[COMMANDS.md](COMMANDS.md)を参照。
+
+### コアコマンド
+
+| `mo optimize` | `broom optimize` | システム最適化 | ✅ 完了 |
+| `mo analyze` | `broom analyze` | ディスク使用量分析 | ✅ 完了 |
+| `mo status` | `broom status` | リアルタイムシステム監視 | ✅ 完了 (blessed TUI) |
+| `mo purge` | `broom purge` | プロジェクトアーティファクト削除 | ✅ 完了 |
+| `mo installer` | `broom installer` | インストーラーファイル削除 | ✅ 完了 |
+| `mo touchid` | `broom touchid` | Touch ID for sudo 設定 | ✅ 完了 |
+| `mo completion` | `broom completion` | シェル補完スクリプト生成 | ✅ 完了 |
+| `mo update` | `broom update` | 自己アップデート | ✅ 完了 |
+| `mo remove` | `broom remove` | アンインストール | ✅ 完了 |
+| - | `broom config` | 設定管理 | ✅ 追加機能 |
 
 ### オプションマッピング
 
@@ -396,11 +506,30 @@ npm install -g broom
 ### ローカル開発
 
 ```bash
+# リポジトリをクローン
 git clone https://github.com/tukuyomil032/broom.git
 cd broom
+
+#　依存関係をインストール
 bun install
+
+# プロジェクトをビルド
 bun run build
-node dist/index.js --help
+
+# グローバルとリンク
+bun link
+
+# プロジェクトを実行(グローバルリンク済みでないと使えない)
+broom <command> <option>
+
+# もしくは
+bun run dev <command> <option>
+
+# もしくは
+bun dist/index.js <command> <option>
+
+# CLI help windows
+broom --help
 ```
 
 ---
@@ -430,6 +559,7 @@ bun run lint:fix
 
 ```bash
 bun run format
+bun run format:check
 ```
 
 ---

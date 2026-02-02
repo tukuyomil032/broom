@@ -20,6 +20,13 @@ import {
   createUpdateCommand,
   createRemoveCommand,
   createConfigCommand,
+  createDoctorCommand,
+  createBackupCommand,
+  createRestoreCommand,
+  createDuplicatesCommand,
+  createScheduleCommand,
+  createWatchCommand,
+  createReportsCommand,
   createHelpCommand,
   setCommandsList,
 } from './commands/index.js';
@@ -58,6 +65,13 @@ ${chalk.bold('Commands:')}
   update      Self-update broom to the latest version
   remove      Uninstall broom from the system
   config      Manage broom configuration
+  doctor      Run system health diagnostics
+  backup      Manage file backups
+  restore     Restore files from backup
+  duplicates  Find and remove duplicate files
+  schedule    Schedule automated cleanups
+  watch       Monitor directory sizes
+  reports     Manage cleanup reports
 
 ${chalk.bold('Examples:')}
   ${chalk.dim('$')} broom clean              Interactive cleanup
@@ -108,6 +122,13 @@ program.addCommand(createCompletionCommand());
 program.addCommand(createUpdateCommand());
 program.addCommand(createRemoveCommand());
 program.addCommand(createConfigCommand());
+program.addCommand(createDoctorCommand());
+program.addCommand(createBackupCommand());
+program.addCommand(createRestoreCommand());
+program.addCommand(createDuplicatesCommand());
+program.addCommand(createScheduleCommand());
+program.addCommand(createWatchCommand());
+program.addCommand(createReportsCommand());
 
 // Set the commands list for the help command
 setCommandsList([
@@ -123,6 +144,13 @@ setCommandsList([
   createUpdateCommand(),
   createRemoveCommand(),
   createConfigCommand(),
+  createDoctorCommand(),
+  createBackupCommand(),
+  createRestoreCommand(),
+  createDuplicatesCommand(),
+  createScheduleCommand(),
+  createWatchCommand(),
+  createReportsCommand(),
 ]);
 
 // Parse arguments

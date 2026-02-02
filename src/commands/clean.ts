@@ -8,6 +8,13 @@ import { formatSize } from '../utils/fs.js';
 import { loadConfig, isWhitelisted } from '../utils/config.js';
 import { debug, debugSection, debugObj, debugFile, debugRisk } from '../utils/debug.js';
 import { enhanceCommandHelp } from '../utils/help.js';
+import { ReportGenerator } from '../utils/report.js';
+import { join } from 'path';
+import { homedir } from 'os';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+
+const execAsync = promisify(exec);
 import {
   printHeader,
   success,
@@ -28,6 +35,8 @@ interface CleanOptions {
   all?: boolean;
   yes?: boolean;
   unsafe?: boolean;
+  report?: boolean;
+  open?: boolean;
 }
 
 /**
@@ -188,6 +197,32 @@ export async function cleanCommand(options: CleanOptions): Promise<void> {
     }
   }
 
+  // Initialize report generator if requested
+  let reportGen: ReportGenerator | null = null;
+  let diskBefore: { total: number; used: number; free: number; percentage: number } | null = null;
+
+  if (options.report) {
+    reportGen = new ReportGenerator();
+
+    // Get disk info before cleanup
+    try {
+      const { stdout } = await execAsync("df -k / | tail -1 | awk '{print $2,$3,$4}'");
+      const [total, used, free] = stdout
+        .trim()
+        .split(' ')
+        .map((n) => parseInt(n) * 1024);
+      diskBefore = {
+        total,
+        used,
+        free,
+        percentage: (used / total) * 100,
+      };
+      reportGen.recordDiskBefore(diskBefore);
+    } catch (e) {
+      debug('Failed to get disk info:', e);
+    }
+  }
+
   // Clean phase
   console.log();
   const cleanSpinner = createSpinner(isDryRun ? 'Simulating cleanup...' : 'Cleaning...');
@@ -211,6 +246,11 @@ export async function cleanCommand(options: CleanOptions): Promise<void> {
     for (const item of result.items) {
       debugFile('delete', item.path, formatSize(item.size));
       debugRisk(item.path, result.category.safetyLevel as any);
+
+      // Record in report
+      if (reportGen) {
+        reportGen.recordDeletion(item.path, item.size, result.category.name);
+      }
     }
 
     const cleanResult = await scanner.clean(result.items, isDryRun);
@@ -236,6 +276,41 @@ export async function cleanCommand(options: CleanOptions): Promise<void> {
   }
 
   printSummaryBlock(summaryHeading, summaryDetails);
+
+  // Generate HTML report if requested
+  if (reportGen) {
+    try {
+      const reportDir = join(homedir(), '.broom', 'reports');
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+      const reportPath = join(reportDir, `cleanup-${timestamp}.html`);
+
+      // Get disk info after cleanup
+      const { stdout } = await execAsync("df -k / | tail -1 | awk '{print $2,$3,$4}'");
+      const [total, used, free] = stdout
+        .trim()
+        .split(' ')
+        .map((n) => parseInt(n) * 1024);
+      const diskAfter = {
+        total,
+        used,
+        free,
+        percentage: (used / total) * 100,
+      };
+
+      await reportGen.generate(reportPath, diskAfter);
+
+      console.log();
+      success(`Report generated: ${chalk.cyan(reportPath)}`);
+
+      // Open in browser if requested
+      if (options.open) {
+        await execAsync(`open "${reportPath}"`);
+        info('Report opened in browser');
+      }
+    } catch (e) {
+      warning(`Failed to generate report: ${e}`);
+    }
+  }
 }
 
 /**
@@ -248,6 +323,8 @@ export function createCleanCommand(): Command {
     .option('-a, --all', 'Clean all categories without prompting')
     .option('-y, --yes', 'Skip confirmation prompts')
     .option('--unsafe', 'Include risky categories in cleanup')
+    .option('-r, --report', 'Generate HTML report after cleanup')
+    .option('-o, --open', 'Open report in browser after generation')
     .action(async (options) => {
       await cleanCommand(options);
     });

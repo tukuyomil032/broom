@@ -76,6 +76,12 @@ export async function saveConfig(config: Config): Promise<void> {
   if (whitelist && whitelist.length > 0) {
     const whitelistContent = `# Broom Whitelist\n# One path per line\n\n${whitelist.join('\n')}`;
     await writeFile(WHITELIST_FILE, whitelistContent, 'utf-8');
+  } else {
+    // Delete whitelist file if empty
+    if (existsSync(WHITELIST_FILE)) {
+      const { unlink } = await import('fs/promises');
+      await unlink(WHITELIST_FILE);
+    }
   }
 
   configCache = config;

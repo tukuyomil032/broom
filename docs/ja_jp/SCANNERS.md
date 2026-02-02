@@ -8,19 +8,19 @@ broom のクリーンアップ機能は、モジュラーな「スキャナー�
 
 | スキャナー          | ファイル           | カテゴリ            | 安全性レベル |
 | ------------------- | ------------------ | ------------------- | ------------ |
-| UserCacheScanner    | `user-cache.ts`    | ユーザーキャッシュ  | 🟢 Safe      |
-| UserLogsScanner     | `user-logs.ts`     | ユーザーログ        | 🟢 Safe      |
-| BrowserCacheScanner | `browser-cache.ts` | ブラウザキャッシュ  | 🟢 Safe      |
-| DevCacheScanner     | `dev-cache.ts`     | 開発者キャッシュ    | 🟡 Moderate  |
-| NodeModulesScanner  | `node-modules.ts`  | node_modules        | 🟡 Moderate  |
-| XcodeScanner        | `xcode.ts`         | Xcode キャッシュ    | 🟡 Moderate  |
-| HomebrewScanner     | `homebrew.ts`      | Homebrew キャッシュ | 🟢 Safe      |
-| DockerScanner       | `docker.ts`        | Docker              | 🟡 Moderate  |
-| TrashScanner        | `trash.ts`         | ゴミ箱              | 🟢 Safe      |
-| DownloadsScanner    | `downloads.ts`     | ダウンロード        | 🔴 Careful   |
-| TempFilesScanner    | `temp-files.ts`    | 一時ファイル        | 🟢 Safe      |
-| iOSBackupsScanner   | `ios-backups.ts`   | iOS バックアップ    | 🔴 Careful   |
-| InstallerScanner    | `installer.ts`     | インストーラー      | 🟢 Safe      |
+| UserCacheScanner    | `user-cache.ts`    | ユーザーキャッシュ  | 🟢 安全      |
+| UserLogsScanner     | `user-logs.ts`     | ユーザーログ        | 🟢 安全      |
+| BrowserCacheScanner | `browser-cache.ts` | ブラウザキャッシュ  | 🟢 安全      |
+| DevCacheScanner     | `dev-cache.ts`     | 開発者キャッシュ    | 🟡 注意      |
+| NodeModulesScanner  | `node-modules.ts`  | node_modules        | 🟡 注意      |
+| XcodeScanner        | `xcode.ts`         | Xcode キャッシュ    | 🟡 注意      |
+| HomebrewScanner     | `homebrew.ts`      | Homebrew キャッシュ | 🟢 安全      |
+| DockerScanner       | `docker.ts`        | Docker              | 🟡 注意      |
+| TrashScanner        | `trash.ts`         | ゴミ箱              | 🟢 安全      |
+| DownloadsScanner    | `downloads.ts`     | ダウンロード        | 🔴 要注意    |
+| TempFilesScanner    | `temp-files.ts`    | 一時ファイル        | 🟢 安全      |
+| iOSBackupsScanner   | `ios-backups.ts`   | iOS バックアップ    | 🔴 要注意    |
+| InstallerScanner    | `installer.ts`     | インストーラー      | 🟢 安全      |
 
 ---
 
@@ -420,11 +420,11 @@ export class CustomScanner extends BaseScanner {
 
 ## 📊 安全性レベル
 
-| レベル          | 説明                                  | 例                             |
-| --------------- | ------------------------------------- | ------------------------------ |
-| 🟢 **Safe**     | 削除しても問題なし。再生成される。    | キャッシュ、ログ、ゴミ箱       |
-| 🟡 **Moderate** | 削除後に再ダウンロード/再ビルドが必要 | node_modules、Xcode            |
-| 🔴 **Careful**  | 重要なファイルが含まれる可能性        | ダウンロード、iOS バックアップ |
+| レベル         | 説明                                  | 例                             |
+| -------------- | ------------------------------------- | ------------------------------ |
+| 🟢 **安全**    | 削除しても問題なし。再生成される。    | キャッシュ、ログ、ゴミ箱       |
+| 🟡 **注意**    | 削除後に再ダウンロード/再ビルドが必要 | node_modules、Xcode            |
+| 🔴 **Careful** | 重要なファイルが含まれる可能性        | ダウンロード、iOS バックアップ |
 
 ---
 

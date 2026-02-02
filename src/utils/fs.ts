@@ -27,6 +27,9 @@ const PROTECTED_PATHS = [
   '/Applications/Utilities',
 ];
 
+// Excluded paths (iCloud Drive, etc.)
+const EXCLUDED_PATHS = ['iCloud Drive', 'Mobile Documents', '.Trash'];
+
 // Allowed cache/temp paths
 const ALLOWED_PATHS = [
   '/tmp',
@@ -36,6 +39,21 @@ const ALLOWED_PATHS = [
   '/var/folders',
   '/private/var/folders',
 ];
+
+/**
+ * Check if a path should be excluded from scanning
+ */
+export function isExcludedPath(path: string): boolean {
+  const normalizedPath = path.toLowerCase();
+
+  for (const excluded of EXCLUDED_PATHS) {
+    if (normalizedPath.includes(excluded.toLowerCase())) {
+      return true;
+    }
+  }
+
+  return false;
+}
 
 /**
  * Check if a path is a protected system path

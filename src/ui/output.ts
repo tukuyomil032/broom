@@ -200,25 +200,77 @@ export function updateSpinner(spinner: Ora, text: string): void {
 }
 
 /**
- * Print progress bar inline
+ * Print progress bar inline with improved design
  */
 export function printProgressBar(percent: number, width = 30, label = ''): void {
   const filled = Math.round((percent / 100) * width);
-  const empty = width - filled;
-  const bar = chalk.green('█'.repeat(filled)) + chalk.gray('░'.repeat(empty));
+
+  // Build bar without gridlines for progress bars
+  let bar = '';
+  for (let i = 0; i < width; i++) {
+    if (i < filled) {
+      const ratio = i / width;
+      if (ratio < 0.5) {
+        bar += chalk.green('█');
+      } else if (ratio < 0.75) {
+        bar += chalk.yellow('█');
+      } else {
+        bar += chalk.red('█');
+      }
+    } else {
+      bar += chalk.gray('░');
+    }
+  }
+
   const percentStr = `${percent.toFixed(0)}%`.padStart(4);
-  const line = `\r${bar} ${percentStr}${label ? ` ${chalk.dim(label)}` : ''}`;
+  const line = `\r${chalk.gray('│')}${bar}${chalk.gray('│')} ${percentStr}${label ? ` ${chalk.dim(label)}` : ''}`;
   process.stdout.write(line);
+}
+
+/**
+ * Print styled progress bar with message
+ */
+export function printStyledProgressBar(
+  percent: number,
+  width = 35,
+  message = '',
+  showPercent = true
+): string {
+  const filled = Math.round((percent / 100) * width);
+
+  // Build bar without gridlines for styled progress bars
+  let bar = chalk.gray('╔');
+  for (let i = 0; i < width; i++) {
+    if (i < filled) {
+      const ratio = i / width;
+      if (ratio < 0.5) {
+        bar += chalk.green('█');
+      } else if (ratio < 0.75) {
+        bar += chalk.yellow('█');
+      } else {
+        bar += chalk.red('█');
+      }
+    } else {
+      bar += chalk.gray('░');
+    }
+  }
+  bar += chalk.gray('╗');
+
+  const percentStr = showPercent ? ` ${percent.toFixed(0).padStart(3)}%` : '';
+  return `${bar}${percentStr}${message ? ` ${chalk.dim(message)}` : ''}`;
 }
 
 /**
  * Create progress tracker
  */
-export function createProgress(total: number): {
+export function createProgress(
+  total: number,
+  taskMessage = 'Processing...'
+): {
   update: (current: number, message?: string) => void;
   finish: (message?: string) => void;
 } {
-  const spinner = ora().start();
+  const spinner = ora(taskMessage).start();
 
   return {
     update: (current: number, message?: string) => {
@@ -237,8 +289,18 @@ export function createProgress(total: number): {
  */
 function createProgressBar(percent: number, width = 20): string {
   const filled = Math.round((percent / 100) * width);
-  const empty = width - filled;
-  return `[${'█'.repeat(filled)}${' '.repeat(empty)}]`;
+
+  let bar = '';
+  for (let i = 0; i < width; i++) {
+    const isGridline = i > 0 && i % (width / 5) === 0;
+    if (i < filled) {
+      bar += isGridline ? '│' : '█';
+    } else {
+      bar += isGridline ? '┊' : ' ';
+    }
+  }
+
+  return `[${bar}]`;
 }
 
 /**

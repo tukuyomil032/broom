@@ -16,7 +16,6 @@ dist/
 .LSOverride
 
 # IDE
-.vscode/
 .idea/
 *.swp
 *.swo
