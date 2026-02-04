@@ -13,6 +13,7 @@ jobs:
   release:
     name: Build and Publish to npm
     runs-on: ubuntu-latest
+    environment: npm-publish
 
     steps:
       - name: Checkout code
@@ -52,12 +53,12 @@ jobs:
       - name: Create release archive
         run: |
           cd dist
-          zip broom-${{ steps.get_info.outputs.TAG }}-${{ steps.get_info.outputs.COMMIT_SHORT }}.zip index.js
+          zip broom-${{ steps.get_info.outputs.VERSION }}-${{ steps.get_info.outputs.COMMIT_SHORT }}.zip index.js
           cd ..
 
       - name: Update package.json version
         run: |
-          npm version ${{ steps.get_info.outputs.VERSION }} --no-git-tag-version
+          node -e "const fs=require('fs'); const p=JSON.parse(fs.readFileSync('package.json','utf8')); p.version='${{ steps.get_info.outputs.VERSION }}'; fs.writeFileSync('package.json', JSON.stringify(p,null,2)+'\n');"
 
       - name: Publish to npm with provenance
         run: npm publish --provenance --access public
@@ -68,7 +69,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            dist/broom-${{ steps.get_info.outputs.TAG }}-${{ steps.get_info.outputs.COMMIT_SHORT }}.zip
+            dist/broom-${{ steps.get_info.outputs.VERSION }}-${{ steps.get_info.outputs.COMMIT_SHORT }}.zip
           generate_release_notes: true
           draft: false
           prerelease: false
@@ -82,7 +83,7 @@ jobs:
             ## Download
 
             Download the pre-built binary:
-            - `broom-${{ steps.get_info.outputs.TAG }}-${{ steps.get_info.outputs.COMMIT_SHORT }}.zip`
+            - `broom-${{ steps.get_info.outputs.VERSION }}-${{ steps.get_info.outputs.COMMIT_SHORT }}.zip`
 
             **Commit**: `${{ steps.get_info.outputs.COMMIT_FULL }}`
         env:
