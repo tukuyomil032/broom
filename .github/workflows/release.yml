@@ -52,7 +52,7 @@ jobs:
       - name: Create release archive
         run: |
           cd dist
-          zip void-${{ steps.get_info.outputs.TAG }}-${{ steps.get_info.outputs.COMMIT_SHORT }}.zip index.js
+          zip broom-${{ steps.get_info.outputs.TAG }}-${{ steps.get_info.outputs.COMMIT_SHORT }}.zip index.js
           cd ..
 
       - name: Update package.json version
