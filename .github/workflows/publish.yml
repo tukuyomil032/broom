@@ -1,38 +1,69 @@
-name: Publish to npm
+name: Release
 
 on:
   push:
-    branches:
-      - master
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+  id-token: write
+  packages: write
 
 jobs:
-  publish:
-    name: Publish package to npm
+  release:
+    name: Build and Publish to npm
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
 
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Use Node.js
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '18'
           registry-url: 'https://registry.npmjs.org'
 
       - name: Install dependencies
-        run: npm ci
+        run: bun install --frozen-lockfile
 
-      - name: Build
-        run: npm run build
+      - name: Run linter
+        run: bun run lint
 
-      - name: Publish to npm
+      - name: Check formatting
+        run: bun run format:check
+
+      - name: Build project
+        run: bun run build
+
+      - name: Extract version and commit info
+        id: get_info
+        run: |
+          echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+          echo "TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          echo "COMMIT_SHORT=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+          echo "COMMIT_FULL=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Create release archive
+        run: |
+          cd dist
+          zip broom-${{ steps.get_info.outputs.TAG }}-${{ steps.get_info.outputs.COMMIT_SHORT }}.zip index.js
+          cd ..
+
+      - name: Update package.json version
+        run: |
+          npm version ${{ steps.get_info.outputs.VERSION }} --no-git-tag-version
+
+      - name: Publish to npm with provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           # Ensure npm uses the token from secrets
           npm config set //registry.npmjs.org/:_authToken "$NODE_AUTH_TOKEN"
-          npm publish --access public
+          npm publish --provenance --access public
