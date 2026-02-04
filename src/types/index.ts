@@ -86,7 +86,6 @@ export interface Config {
   blacklist: string[];
   autoConfirm: boolean;
   safetyLevel: SafetyLevel;
-  monitorPreset: 1 | 2 | 3 | 4 | 5;
   scanLocations: {
     userCache: boolean;
     systemCache: boolean;
@@ -107,7 +106,6 @@ export const DEFAULT_CONFIG: Config = {
   blacklist: [],
   autoConfirm: false,
   safetyLevel: 'moderate',
-  monitorPreset: 1,
   scanLocations: {
     userCache: true,
     systemCache: true,

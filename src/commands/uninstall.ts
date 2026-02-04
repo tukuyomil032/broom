@@ -266,52 +266,74 @@ export async function uninstallCommand(options: UninstallOptions): Promise<void>
     return;
   }
 
-  // Select app
+  // Select apps (multiple selection via space)
   console.log();
-  const selectedApp = await selectApp(apps);
+  const selectedApps = await selectApp(apps);
 
-  if (!selectedApp) {
+  if (!selectedApps || selectedApps.length === 0) {
     warning('No application selected');
     return;
   }
 
-  // Find related files
+  // Find related files for all selected apps
   console.log();
-  const searchSpinner = createSpinner(`Searching for ${selectedApp.name} related files...`);
-  const relatedFiles = await findAppFiles(selectedApp);
+  const searchSpinner = createSpinner(`Searching for related files...`);
+  const relatedFilesAll: Map<string, CleanableItem> = new Map();
+
+  for (const app of selectedApps) {
+    const files = await findAppFiles(app);
+    for (const f of files) {
+      relatedFilesAll.set(f.path, f);
+    }
+  }
+
+  const relatedFiles = Array.from(relatedFilesAll.values());
   succeedSpinner(searchSpinner, `Found ${relatedFiles.length} related files`);
 
-  // Show app info
+  // Show selected apps info
   console.log();
-  console.log(chalk.bold(`Application: ${selectedApp.name}`));
-  console.log(`  Path: ${chalk.dim(selectedApp.path)}`);
-  console.log(`  Size: ${chalk.yellow(formatSize(selectedApp.size))}`);
-  if (selectedApp.bundleId) {
-    console.log(`  Bundle ID: ${chalk.dim(selectedApp.bundleId)}`);
+  console.log(chalk.bold('Selected Applications:'));
+  let totalAppSize = 0;
+  for (const app of selectedApps) {
+    totalAppSize += app.size;
+    console.log(
+      `  - ${chalk.bold(app.name)} ${chalk.dim(app.path)} ${chalk.yellow(formatSize(app.size))}`
+    );
+    if (app.bundleId) {
+      console.log(`     Bundle ID: ${chalk.dim(app.bundleId)}`);
+    }
   }
+  // Ensure one blank line between Selected Applications and Related Files
+  console.log();
 
   // Show related files
   if (relatedFiles.length > 0) {
     const totalRelatedSize = relatedFiles.reduce((sum, f) => sum + f.size, 0);
-    console.log();
     console.log(chalk.bold(`Related Files (${formatSize(totalRelatedSize)}):`));
 
-    for (const file of relatedFiles.slice(0, 10)) {
-      console.log(
-        `  ${file.isDirectory ? '📁' : '📄'} ${chalk.dim(file.path)} ${chalk.yellow(formatSize(file.size))}`
-      );
+    // Determine column widths for neat alignment
+    const filesToShow = relatedFiles.slice(0, 10);
+    const maxPath = Math.min(80, Math.max(...filesToShow.map((f) => f.path.length), 20));
+    const sizeWidth = 12;
+
+    for (const file of filesToShow) {
+      const icon = file.isDirectory ? '📁' : '📄';
+      const pathDisp = chalk.dim(file.path.padEnd(maxPath));
+      const sizeDisp = chalk.yellow(formatSize(file.size).padStart(sizeWidth));
+      console.log(`  ${icon} ${pathDisp} ${sizeDisp}`);
     }
 
-    if (relatedFiles.length > 10) {
-      console.log(chalk.dim(`  ... and ${relatedFiles.length - 10} more`));
+    if (relatedFiles.length > filesToShow.length) {
+      console.log(chalk.dim(`  ... and ${relatedFiles.length - filesToShow.length} more`));
     }
   }
 
   // Confirm uninstall
   console.log();
   if (!options.yes) {
+    const names = selectedApps.map((a) => a.name).join(', ');
     const confirmed = await confirmAction(
-      `Uninstall ${selectedApp.name} and remove related files?`,
+      `Uninstall ${selectedApps.length} app(s): ${names} and remove related files?`,
       false
     );
 
@@ -340,13 +362,16 @@ export async function uninstallCommand(options: UninstallOptions): Promise<void>
   const errors: string[] = [];
 
   if (!isDryRun) {
-    // Remove app
-    appRemoved = await removeAppToTrash(selectedApp.path);
-
-    if (appRemoved) {
-      freedSpace += selectedApp.size;
-    } else {
-      errors.push(`Failed to remove ${selectedApp.name}`);
+    // Remove each selected app
+    let appsRemovedCount = 0;
+    for (const app of selectedApps) {
+      const removed = await removeAppToTrash(app.path);
+      if (removed) {
+        appsRemovedCount++;
+        freedSpace += app.size;
+      } else {
+        errors.push(`Failed to remove ${app.name}`);
+      }
     }
 
     // Remove related files
@@ -366,8 +391,8 @@ export async function uninstallCommand(options: UninstallOptions): Promise<void>
     }
   } else {
     // Dry run - just count
-    appRemoved = true;
-    freedSpace = selectedApp.size;
+    const appsRemovedCount = selectedApps.length;
+    freedSpace = selectedApps.reduce((s, a) => s + a.size, 0);
     filesRemoved = filesToRemove.length;
     freedSpace += filesToRemove.reduce((sum, f) => sum + f.size, 0);
   }
@@ -381,7 +406,7 @@ export async function uninstallCommand(options: UninstallOptions): Promise<void>
   // Print summary
   const summaryHeading = isDryRun ? 'Dry Run Complete' : 'Uninstall Complete';
   const summaryDetails = [
-    `Application: ${appRemoved ? chalk.green('Removed') : chalk.red('Failed')}`,
+    `Applications removed: ${chalk.green(String(selectedApps.length - errors.filter((e) => e.startsWith('Failed to remove')).length))}`,
     `Related files removed: ${filesRemoved}`,
     `Space freed: ${chalk.green(formatSize(freedSpace))}`,
   ];

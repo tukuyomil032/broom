@@ -90,26 +90,38 @@ export async function selectFiles(items: CleanableItem[]): Promise<CleanableItem
   }
 }
 
-/**
- * Select an application
- */
-export async function selectApp(apps: AppInfo[]): Promise<AppInfo | null> {
-  if (apps.length === 0) {
-    return null;
-  }
+// No app icon rendering here — removed per request. Formatting below aligns columns.
 
-  const choices = apps.map((app) => ({
-    name: `${app.name} (${formatSize(app.size)})${app.bundleId ? chalk.dim(` - ${app.bundleId}`) : ''}`,
-    value: app,
-  }));
+/**
+ * Select an application with custom navigation (no looping)
+ */
+export async function selectApp(apps: AppInfo[]): Promise<AppInfo[]> {
+  if (apps.length === 0) return [];
+
+  // Align columns: [Name padded] [Size right-aligned] [BundleId dimmed]
+  const maxName = Math.min(36, Math.max(...apps.map((a) => a.name.length), 10));
+  const sizeWidth = 10;
+
+  const choices = apps.map((app) => {
+    const namePad = app.name.padEnd(maxName);
+    const sizeStr = formatSize(app.size).padStart(sizeWidth);
+    const bundle = app.bundleId ? chalk.dim(` ${app.bundleId}`) : '';
+
+    return {
+      name: `${namePad} ${chalk.yellow(sizeStr)}${bundle}`,
+      value: app,
+      checked: false,
+    };
+  });
 
   try {
-    return await select({
-      message: 'Select an application:',
+    return await checkbox({
+      message: 'Select applications to uninstall (space to toggle, Enter to confirm):',
       choices,
+      loop: false,
     });
   } catch {
-    return null;
+    return [];
   }
 }
 

@@ -258,54 +258,50 @@ async function interactiveConfigEdit(): Promise<void> {
     console.log(chalk.bold('⚙️  Configuration Editor'));
     console.log(chalk.dim('Select an option to configure:'));
     console.log();
-    console.log(`  ${chalk.cyan('1')} Monitor Preset (Current: ${config.monitorPreset})`);
-    console.log(`  ${chalk.cyan('2')} Safety Level (Current: ${config.safetyLevel})`);
+    console.log(`  ${chalk.cyan('1')} Safety Level (Current: ${config.safetyLevel})`);
     console.log(
-      `  ${chalk.cyan('3')} Auto Confirm (Current: ${config.autoConfirm ? 'Yes' : 'No'})`
+      `  ${chalk.cyan('2')} Auto Confirm (Current: ${config.autoConfirm ? 'Yes' : 'No'})`
     );
-    console.log(`  ${chalk.cyan('4')} Dry Run (Current: ${config.dryRun ? 'Yes' : 'No'})`);
-    console.log(`  ${chalk.cyan('5')} Verbose (Current: ${config.verbose ? 'Yes' : 'No'})`);
-    console.log(`  ${chalk.cyan('6')} Manage Whitelist (${config.whitelist.length} items)`);
-    console.log(`  ${chalk.cyan('7')} Manage Blacklist (${config.blacklist.length} items)`);
-    console.log(`  ${chalk.cyan('8')} View All Settings`);
-    console.log(`  ${chalk.cyan('9')} Reset to Defaults`);
+    console.log(`  ${chalk.cyan('3')} Dry Run (Current: ${config.dryRun ? 'Yes' : 'No'})`);
+    console.log(`  ${chalk.cyan('4')} Verbose (Current: ${config.verbose ? 'Yes' : 'No'})`);
+    console.log(`  ${chalk.cyan('5')} Manage Whitelist (${config.whitelist.length} items)`);
+    console.log(`  ${chalk.cyan('6')} Manage Blacklist (${config.blacklist.length} items)`);
+    console.log(`  ${chalk.cyan('7')} View All Settings`);
+    console.log(`  ${chalk.cyan('8')} Reset to Defaults`);
     console.log(`  ${chalk.cyan('0')} Exit`);
     console.log();
 
-    const choice = await inputPrompt('Choose an option (0-9):');
+    const choice = await inputPrompt('Choose an option (0-8):');
 
     switch (choice) {
       case '1':
-        await configureMonitorPreset(config);
-        break;
-      case '2':
         await configureSafetyLevel(config);
         break;
-      case '3':
+      case '2':
         config.autoConfirm = !config.autoConfirm;
         await saveConfig(config);
         success(`Auto Confirm set to: ${config.autoConfirm ? 'Yes' : 'No'}`);
         break;
-      case '4':
+      case '3':
         config.dryRun = !config.dryRun;
         await saveConfig(config);
         success(`Dry Run set to: ${config.dryRun ? 'Yes' : 'No'}`);
         break;
-      case '5':
+      case '4':
         config.verbose = !config.verbose;
         await saveConfig(config);
         success(`Verbose set to: ${config.verbose ? 'Yes' : 'No'}`);
         break;
-      case '6':
+      case '5':
         await manageWhitelist(config);
         break;
-      case '7':
+      case '6':
         await manageBlacklist(config);
         break;
-      case '8':
+      case '7':
         await listConfig();
         break;
-      case '9':
+      case '8':
         const confirmed = await confirmAction('Reset configuration to defaults?', false);
         if (confirmed) {
           await saveConfig({ ...DEFAULT_CONFIG });
@@ -322,35 +318,6 @@ async function interactiveConfigEdit(): Promise<void> {
       default:
         error('Invalid option');
     }
-  }
-}
-
-/**
- * Configure monitor preset
- */
-async function configureMonitorPreset(config: typeof DEFAULT_CONFIG): Promise<void> {
-  console.log();
-  console.log(chalk.bold('Monitor Presets:'));
-  console.log(`  ${chalk.cyan('1')} Classic Grid Layout (CPU, Memory, Disk, Network in grid)`);
-  console.log(`  ${chalk.cyan('2')} Minimal Compact (Simple single-panel layout)`);
-  console.log(`  ${chalk.cyan('3')} Detailed Information (Comprehensive system info)`);
-  console.log(`  ${chalk.cyan('4')} Linux-style Dashboard (Like htop/top)`);
-  console.log(`  ${chalk.cyan('5')} Modern Colorful Dashboard (Color-rich modern design)`);
-  console.log();
-
-  const choice = await inputPrompt('Select preset (1-5):');
-  if (!choice) {
-    return;
-  }
-
-  const preset = parseInt(choice) as 1 | 2 | 3 | 4 | 5;
-
-  if (preset >= 1 && preset <= 5) {
-    config.monitorPreset = preset;
-    await saveConfig(config);
-    success(`Monitor preset set to: ${preset}`);
-  } else {
-    error('Invalid preset selection');
   }
 }
 
