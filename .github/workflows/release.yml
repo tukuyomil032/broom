@@ -56,14 +56,11 @@ jobs:
           zip broom-${{ steps.get_info.outputs.VERSION }}-${{ steps.get_info.outputs.COMMIT_SHORT }}.zip index.js
           cd ..
 
-      - name: Update package.json version
-        run: |
-          node -e "const fs=require('fs'); const p=JSON.parse(fs.readFileSync('package.json','utf8')); p.version='${{ steps.get_info.outputs.VERSION }}'; fs.writeFileSync('package.json', JSON.stringify(p,null,2)+'\n');"
-
       - name: Configure npm authentication
         run: |
           echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
           chmod 600 ~/.npmrc
+          npm whoami
 
       - name: Publish to npm
         run: npm publish --provenance --access public
