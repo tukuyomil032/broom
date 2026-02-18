@@ -1,7 +1,7 @@
 {
   "name": "@tukuyomil032/broom",
   "private": false,
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "🧹 macOS Disk Cleanup CLI - Clean up caches, logs, trash, browser data, dev artifacts, and more",
   "type": "module",
   "main": "./dist/index.js",
@@ -67,7 +67,6 @@
     "yargs": "^18.0.0"
   },
   "devDependencies": {
-    "@eslint/json": "^0.14.0",
     "@types/blessed": "^0.1.27",
     "@types/node": "^25.0.10",
     "@typescript-eslint/eslint-plugin": "^8.53.1",

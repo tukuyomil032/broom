@@ -97,7 +97,31 @@ export async function cleanCommand(options: CleanOptions): Promise<void> {
   const scanners = getAllScanners();
   const progress = createProgress(scanners.length);
 
-  console.log(chalk.cyan('Scanning for cleanable files...\n'));
+  // Display scan targets
+  console.log(chalk.bold('\n📍 Scan Targets:'));
+  console.log(chalk.dim('The following locations will be scanned:\n'));
+
+  const scanTargets = [
+    { icon: '📁', name: 'User Caches', path: '~/Library/Caches' },
+    { icon: '📋', name: 'User Logs', path: '~/Library/Logs' },
+    { icon: '🗑', name: 'Trash', path: '~/.Trash' },
+    { icon: '🌐', name: 'Browser Caches', path: '~/Library/**/Cache' },
+    { icon: '📦', name: 'Development Caches', path: 'Various dev tool caches' },
+    { icon: '🛠', name: 'Xcode Caches', path: '~/Library/Developer' },
+    { icon: '⬇️', name: 'Old Downloads', path: '~/Downloads' },
+    { icon: '🍺', name: 'Homebrew Caches', path: '/Library/Caches/Homebrew' },
+    { icon: '🐳', name: 'Docker Artifacts', path: '~/.docker' },
+    { icon: '📱', name: 'iOS Backups', path: '~/Library/Caches/com.apple.bird*' },
+    { icon: '❄️', name: 'Temporary Files', path: '/var/tmp, /tmp' },
+    { icon: '🔗', name: 'Node Modules', path: 'Large node_modules directories' },
+    { icon: '🔧', name: 'Old Installers', path: 'Failed/old installer files' },
+  ];
+
+  for (const target of scanTargets) {
+    console.log(`  ${target.icon} ${target.name.padEnd(25)} ${chalk.dim(target.path)}`);
+  }
+
+  console.log(chalk.cyan('\nScanning for cleanable files...\n'));
 
   debug(`Starting scan with ${scanners.length} scanners`);
   const summary = await runAllScans({
@@ -105,7 +129,7 @@ export async function cleanCommand(options: CleanOptions): Promise<void> {
     concurrency: 4,
     onProgress: (completed, total, scanner) => {
       debug(`Scan progress: ${completed}/${total} - ${scanner.category.name}`);
-      progress.update(completed, `Scanning ${scanner.category.name}...`);
+      progress.update(completed, `Scanning ${scanner.category.name}... (${completed}/${total})`);
     },
   });
 

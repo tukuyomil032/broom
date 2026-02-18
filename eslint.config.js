@@ -1,7 +1,6 @@
 import js from '@eslint/js';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
-import json from '@eslint/json';
 
 export default [
   {
@@ -28,12 +27,5 @@ export default [
     rules: {
       ...tseslint.configs.recommended.rules,
     },
-  },
-
-  {
-    files: ['**/*.json'],
-    language: 'json/json',
-    plugins: { json },
-    ...json.configs.recommended,
   },
 ];

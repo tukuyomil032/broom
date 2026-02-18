@@ -33,7 +33,7 @@ import {
 import { enableDebug, debug } from './utils/debug.js';
 import { getGlobalOptionsTable } from './utils/help.js';
 
-const VERSION = '1.0.2';
+const VERSION = '1.0.3';
 
 // ASCII art logo
 const logo = chalk.cyan(`
@@ -74,14 +74,15 @@ ${chalk.bold('Commands:')}
   reports     Manage cleanup reports
 
 ${chalk.bold('Examples:')}
-  ${chalk.dim('$')} broom clean              Interactive cleanup
-  ${chalk.dim('$')} broom clean --dry-run    Preview what would be cleaned
-  ${chalk.dim('$')} broom clean --all        Clean all categories
-  ${chalk.dim('$')} broom uninstall          Remove an app completely
-  ${chalk.dim('$')} broom optimize           Run system optimization tasks
-  ${chalk.dim('$')} broom analyze            See what's using disk space
-  ${chalk.dim('$')} broom status --watch     Live system monitoring
-  ${chalk.dim('$')} broom purge              Clean project artifacts
+  ${chalk.dim('$')} broom clean                    Interactive cleanup
+  ${chalk.dim('$')} broom clean --dry-run          Preview what would be cleaned
+  ${chalk.dim('$')} broom clean --all              Clean all categories
+  ${chalk.dim('$')} broom uninstall                Remove an app completely
+  ${chalk.dim('$')} broom optimize                 Run system optimization tasks
+  ${chalk.dim('$')} broom analyze                  See what's using disk space
+  ${chalk.dim('$')} broom analyze --path ~/Library Analyze a Library
+  ${chalk.dim('$')} broom status --watch           Live system monitoring
+  ${chalk.dim('$')} broom purge                    Clean project artifacts
 
 ${getGlobalOptionsTable()}
 `;
