@@ -1,7 +1,7 @@
 {
   "name": "@tukuyomil032/broom",
   "private": false,
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "🧹 macOS Disk Cleanup CLI - Clean up caches, logs, trash, browser data, dev artifacts, and more",
   "type": "module",
   "main": "./dist/index.js",
@@ -87,6 +87,5 @@
       "eslint --fix",
       "prettier --write"
     ]
-  },
-  "packageManager": "bun@1.3.6"
+  }
 }
