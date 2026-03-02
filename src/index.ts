@@ -33,7 +33,7 @@ import {
 import { enableDebug, debug } from './utils/debug.js';
 import { getGlobalOptionsTable } from './utils/help.js';
 
-const VERSION = '1.0.5';
+const VERSION = '1.0.51';
 
 // ASCII art logo
 const logo = chalk.cyan(`

@@ -3,12 +3,16 @@
  */
 import { Command } from 'commander';
 import { execSync } from 'child_process';
+import { readFileSync } from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
 import chalk from 'chalk';
 import ora from 'ora';
 import { confirm } from '@inquirer/prompts';
 import { enhanceCommandHelp } from '../utils/help.js';
 
-const PACKAGE_NAME = 'broom-cli';
+const PACKAGE_NAME = '@tukuyomil032/broom';
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 interface UpdateOptions {
   check: boolean;
@@ -20,7 +24,8 @@ interface UpdateOptions {
  */
 function getCurrentVersion(): string {
   try {
-    const packageJson = require('../../package.json');
+    const packagePath = join(__dirname, '../../package.json');
+    const packageJson = JSON.parse(readFileSync(packagePath, 'utf-8'));
     return packageJson.version;
   } catch {
     return 'unknown';
