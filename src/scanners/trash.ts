@@ -35,6 +35,8 @@ export class TrashScanner extends BaseScanner {
         return this.createResult([]);
       }
 
+      this.trackDirectory(paths.trash);
+
       const entries = await readdir(paths.trash);
 
       for (const entry of entries) {

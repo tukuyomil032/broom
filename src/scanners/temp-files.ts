@@ -28,6 +28,8 @@ export class TempFilesScanner extends BaseScanner {
           continue;
         }
 
+        this.trackDirectory(tempPath);
+
         const entries = await readdir(tempPath);
 
         for (const entry of entries) {

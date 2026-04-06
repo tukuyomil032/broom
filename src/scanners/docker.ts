@@ -33,6 +33,8 @@ export class DockerScanner extends BaseScanner {
     try {
       // Check Docker data directory
       if (exists(paths.docker.data)) {
+        this.trackDirectory(paths.docker.data);
+
         const stats = await stat(paths.docker.data);
         const size = await getSize(paths.docker.data);
 
@@ -49,6 +51,8 @@ export class DockerScanner extends BaseScanner {
 
       // Check VM disk specifically
       if (exists(paths.docker.vmDisk)) {
+        this.trackDirectory(paths.docker.vmDisk);
+
         const stats = await stat(paths.docker.vmDisk);
         const size = await getSize(paths.docker.vmDisk);
 

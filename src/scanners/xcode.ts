@@ -73,6 +73,8 @@ export class XcodeScanner extends BaseScanner {
           continue;
         }
 
+        this.trackDirectory(location.path);
+
         const stats = await stat(location.path);
         const size = await getSize(location.path);
 
@@ -103,6 +105,8 @@ export class XcodeScanner extends BaseScanner {
       if (!exists(paths.xcode.simulatorDevices)) {
         return;
       }
+
+      this.trackDirectory(paths.xcode.simulatorDevices);
 
       const entries = await readdir(paths.xcode.simulatorDevices);
 

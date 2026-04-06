@@ -25,6 +25,8 @@ export class UserCacheScanner extends BaseScanner {
         return this.createResult([]);
       }
 
+      this.trackDirectory(paths.userCache);
+
       const entries = await readdir(paths.userCache);
 
       for (const entry of entries) {

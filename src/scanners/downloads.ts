@@ -29,6 +29,8 @@ export class DownloadsScanner extends BaseScanner {
         return this.createResult([]);
       }
 
+      this.trackDirectory(paths.downloads);
+
       const entries = await readdir(paths.downloads);
 
       for (const entry of entries) {

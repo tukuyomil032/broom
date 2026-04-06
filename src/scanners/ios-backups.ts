@@ -31,6 +31,8 @@ export class IosBackupsScanner extends BaseScanner {
         return this.createResult([]);
       }
 
+      this.trackDirectory(paths.iosBackups);
+
       const entries = await readdir(paths.iosBackups);
 
       for (const entry of entries) {

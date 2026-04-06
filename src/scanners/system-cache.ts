@@ -1,36 +1,47 @@
 /**
- * User logs scanner
+ * System cache scanner
  */
 import { readdir, stat } from 'fs/promises';
 import { join } from 'path';
 import { BaseScanner } from './base.js';
 import type { Category, ScanResult, CleanableItem, ScannerOptions } from '../types/index.js';
-import { paths } from '../utils/paths.js';
-import { exists, getSize } from '../utils/fs.js';
+import { exists, getSize, isExcludedPath } from '../utils/fs.js';
 
-export class UserLogsScanner extends BaseScanner {
+export class SystemCacheScanner extends BaseScanner {
   category: Category = {
-    id: 'user-logs',
-    name: 'User Logs',
+    id: 'system-cache',
+    name: 'System Cache',
     group: 'System Junk',
-    description: 'Application logs in ~/Library/Logs',
-    safetyLevel: 'safe',
+    description: 'System-level caches in /Library/Caches (requires sudo)',
+    safetyLevel: 'moderate',
+    safetyNote: 'May require system restart for some services',
   };
 
   async scan(_options?: ScannerOptions): Promise<ScanResult> {
     const items: CleanableItem[] = [];
+    const systemCachePath = '/Library/Caches';
 
     try {
-      if (!exists(paths.userLogs)) {
+      if (!exists(systemCachePath)) {
         return this.createResult([]);
       }
 
-      this.trackDirectory(paths.userLogs);
+      this.trackDirectory(systemCachePath);
 
-      const entries = await readdir(paths.userLogs);
+      const entries = await readdir(systemCachePath);
 
       for (const entry of entries) {
-        const entryPath = join(paths.userLogs, entry);
+        // Skip Apple system caches
+        if (entry.startsWith('com.apple.')) {
+          continue;
+        }
+
+        const entryPath = join(systemCachePath, entry);
+
+        // Skip excluded paths
+        if (isExcludedPath(entryPath)) {
+          continue;
+        }
 
         try {
           const stats = await stat(entryPath);
@@ -50,6 +61,7 @@ export class UserLogsScanner extends BaseScanner {
         }
       }
 
+      // Sort by size descending
       items.sort((a, b) => b.size - a.size);
 
       return this.createResult(items);

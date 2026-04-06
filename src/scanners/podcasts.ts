@@ -1,36 +1,42 @@
 /**
- * User logs scanner
+ * Podcasts cache scanner
  */
 import { readdir, stat } from 'fs/promises';
 import { join } from 'path';
+import { homedir } from 'os';
 import { BaseScanner } from './base.js';
 import type { Category, ScanResult, CleanableItem, ScannerOptions } from '../types/index.js';
-import { paths } from '../utils/paths.js';
-import { exists, getSize } from '../utils/fs.js';
+import { exists, getSize, isExcludedPath } from '../utils/fs.js';
 
-export class UserLogsScanner extends BaseScanner {
+export class PodcastsScanner extends BaseScanner {
   category: Category = {
-    id: 'user-logs',
-    name: 'User Logs',
-    group: 'System Junk',
-    description: 'Application logs in ~/Library/Logs',
+    id: 'podcasts',
+    name: 'Podcasts Cache',
+    group: 'Apps',
+    description: 'Apple Podcasts temporary files',
     safetyLevel: 'safe',
   };
 
   async scan(_options?: ScannerOptions): Promise<ScanResult> {
     const items: CleanableItem[] = [];
+    const podcastsTmpPath = join(homedir(), 'Library/Containers/com.apple.podcasts/Data/tmp');
 
     try {
-      if (!exists(paths.userLogs)) {
+      if (!exists(podcastsTmpPath)) {
         return this.createResult([]);
       }
 
-      this.trackDirectory(paths.userLogs);
+      this.trackDirectory(podcastsTmpPath);
 
-      const entries = await readdir(paths.userLogs);
+      const entries = await readdir(podcastsTmpPath);
 
       for (const entry of entries) {
-        const entryPath = join(paths.userLogs, entry);
+        const entryPath = join(podcastsTmpPath, entry);
+
+        // Skip excluded paths
+        if (isExcludedPath(entryPath)) {
+          continue;
+        }
 
         try {
           const stats = await stat(entryPath);
@@ -50,6 +56,7 @@ export class UserLogsScanner extends BaseScanner {
         }
       }
 
+      // Sort by size descending
       items.sort((a, b) => b.size - a.size);
 
       return this.createResult(items);

@@ -35,6 +35,8 @@ export class InstallerScanner extends BaseScanner {
           continue;
         }
 
+        this.trackDirectory(searchPath);
+
         await this.scanDirectory(searchPath, items, 2);
       } catch {
         // Skip if cannot access

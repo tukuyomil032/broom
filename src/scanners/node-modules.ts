@@ -36,6 +36,8 @@ export class NodeModulesScanner extends BaseScanner {
       try {
         await access(searchPath);
 
+        this.trackDirectory(searchPath);
+
         // Use fast-glob to find node_modules
         const nodeModulesDirs = await fg('**/node_modules', {
           cwd: searchPath,

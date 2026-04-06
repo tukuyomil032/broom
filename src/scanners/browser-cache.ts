@@ -59,6 +59,8 @@ export class BrowserCacheScanner extends BaseScanner {
             continue;
           }
 
+          this.trackDirectory(browserPath);
+
           // Check if it's a directory that contains cache
           const stats = await stat(browserPath);
 

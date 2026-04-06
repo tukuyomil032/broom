@@ -1,39 +1,56 @@
 /**
- * User logs scanner
+ * Mail downloads scanner
  */
 import { readdir, stat } from 'fs/promises';
 import { join } from 'path';
+import { homedir } from 'os';
 import { BaseScanner } from './base.js';
 import type { Category, ScanResult, CleanableItem, ScannerOptions } from '../types/index.js';
-import { paths } from '../utils/paths.js';
-import { exists, getSize } from '../utils/fs.js';
+import { exists, getSize, isExcludedPath } from '../utils/fs.js';
 
-export class UserLogsScanner extends BaseScanner {
+const DAYS_OLD_THRESHOLD = 30;
+
+export class MailDownloadsScanner extends BaseScanner {
   category: Category = {
-    id: 'user-logs',
-    name: 'User Logs',
-    group: 'System Junk',
-    description: 'Application logs in ~/Library/Logs',
+    id: 'mail-downloads',
+    name: 'Mail Downloads',
+    group: 'Apps',
+    description: 'Mail app download attachments older than 30 days',
     safetyLevel: 'safe',
   };
 
   async scan(_options?: ScannerOptions): Promise<ScanResult> {
     const items: CleanableItem[] = [];
+    const mailDownloadsPath = join(homedir(), 'Library/Mail Downloads');
+    const daysOld = _options?.daysOld || DAYS_OLD_THRESHOLD;
 
     try {
-      if (!exists(paths.userLogs)) {
+      if (!exists(mailDownloadsPath)) {
         return this.createResult([]);
       }
 
-      this.trackDirectory(paths.userLogs);
+      this.trackDirectory(mailDownloadsPath);
 
-      const entries = await readdir(paths.userLogs);
+      const entries = await readdir(mailDownloadsPath);
+      const now = Date.now();
+      const cutoffTime = now - daysOld * 24 * 60 * 60 * 1000;
 
       for (const entry of entries) {
-        const entryPath = join(paths.userLogs, entry);
+        const entryPath = join(mailDownloadsPath, entry);
+
+        // Skip excluded paths
+        if (isExcludedPath(entryPath)) {
+          continue;
+        }
 
         try {
           const stats = await stat(entryPath);
+
+          // Only include files older than threshold
+          if (stats.mtime.getTime() > cutoffTime) {
+            continue;
+          }
+
           const size = await getSize(entryPath);
 
           if (size > 0) {
@@ -50,6 +67,7 @@ export class UserLogsScanner extends BaseScanner {
         }
       }
 
+      // Sort by size descending
       items.sort((a, b) => b.size - a.size);
 
       return this.createResult(items);

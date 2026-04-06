@@ -51,6 +51,8 @@ export class DevCacheScanner extends BaseScanner {
           continue;
         }
 
+        this.trackDirectory(tool.path);
+
         const stats = await stat(tool.path);
         const size = await getSize(tool.path);
 

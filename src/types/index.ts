@@ -14,6 +14,7 @@ export interface ScanResult {
   category: Category;
   items: CleanableItem[];
   totalSize: number;
+  scannedDirectories?: string[];
   error?: string;
 }
 
@@ -43,6 +44,13 @@ export type CategoryId =
   | 'user-cache'
   | 'system-cache'
   | 'system-logs'
+  | 'system-temp'
+  | 'ios-device-logs'
+  | 'core-simulator'
+  | 'quicklook'
+  | 'mail-downloads'
+  | 'podcasts'
+  | 'diagnostics'
   | 'user-logs'
   | 'temp-files'
   | 'trash'

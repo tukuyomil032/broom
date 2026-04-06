@@ -37,6 +37,8 @@ export class HomebrewScanner extends BaseScanner {
           continue;
         }
 
+        this.trackDirectory(brewPath);
+
         const stats = await stat(brewPath);
         const size = await getSize(brewPath);
 

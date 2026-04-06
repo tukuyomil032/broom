@@ -3,6 +3,15 @@
  */
 import type { Scanner, ScanSummary, ScanResult } from '../types/index.js';
 import { UserCacheScanner } from './user-cache.js';
+import { SystemCacheScanner } from './system-cache.js';
+import { SystemLogsScanner } from './system-logs.js';
+import { SystemTempScanner } from './system-temp.js';
+import { IosDeviceLogsScanner } from './ios-device-logs.js';
+import { CoreSimulatorScanner } from './core-simulator.js';
+import { QuickLookScanner } from './quicklook.js';
+import { MailDownloadsScanner } from './mail-downloads.js';
+import { PodcastsScanner } from './podcasts.js';
+import { DiagnosticsScanner } from './diagnostics.js';
 import { UserLogsScanner } from './user-logs.js';
 import { TrashScanner } from './trash.js';
 import { BrowserCacheScanner } from './browser-cache.js';
@@ -20,6 +29,15 @@ import pLimit from 'p-limit';
 // All available scanners
 const scanners: Scanner[] = [
   new UserCacheScanner(),
+  new SystemCacheScanner(),
+  new SystemLogsScanner(),
+  new SystemTempScanner(),
+  new IosDeviceLogsScanner(),
+  new CoreSimulatorScanner(),
+  new QuickLookScanner(),
+  new MailDownloadsScanner(),
+  new PodcastsScanner(),
+  new DiagnosticsScanner(),
   new UserLogsScanner(),
   new TrashScanner(),
   new BrowserCacheScanner(),
@@ -147,6 +165,15 @@ export async function runScans(
 
 // Export individual scanners
 export { UserCacheScanner } from './user-cache.js';
+export { SystemCacheScanner } from './system-cache.js';
+export { SystemLogsScanner } from './system-logs.js';
+export { SystemTempScanner } from './system-temp.js';
+export { IosDeviceLogsScanner } from './ios-device-logs.js';
+export { CoreSimulatorScanner } from './core-simulator.js';
+export { QuickLookScanner } from './quicklook.js';
+export { MailDownloadsScanner } from './mail-downloads.js';
+export { PodcastsScanner } from './podcasts.js';
+export { DiagnosticsScanner } from './diagnostics.js';
 export { UserLogsScanner } from './user-logs.js';
 export { TrashScanner } from './trash.js';
 export { BrowserCacheScanner } from './browser-cache.js';

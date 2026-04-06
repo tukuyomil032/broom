@@ -76,6 +76,26 @@ function printScanResults(results: ScanResult[]): void {
 }
 
 /**
+ * Print scanned directories summary
+ */
+function printScanDirectorySummary(results: ScanResult[]): void {
+  console.log();
+  console.log(chalk.bold('📁 Scanned Directories Summary:'));
+  separator('─', 80);
+
+  for (const result of results) {
+    if (result.scannedDirectories && result.scannedDirectories.length > 0) {
+      console.log(chalk.cyan(`\n${result.category.name}:`));
+      result.scannedDirectories.forEach((dir) => {
+        console.log(chalk.dim(`  • ${dir}`));
+      });
+    }
+  }
+
+  separator('─', 80);
+}
+
+/**
  * Execute clean command
  */
 export async function cleanCommand(options: CleanOptions): Promise<void> {
@@ -103,6 +123,15 @@ export async function cleanCommand(options: CleanOptions): Promise<void> {
 
   const scanTargets = [
     { icon: '📁', name: 'User Caches', path: '~/Library/Caches' },
+    { icon: '🔧', name: 'System Caches', path: '/Library/Caches' },
+    { icon: '📄', name: 'System Logs', path: '/var/log' },
+    { icon: '❄️', name: 'System Temp', path: '/private/tmp, /var/tmp' },
+    { icon: '📱', name: 'iOS Device Logs', path: '~/Library/Developer/Xcode/iOS Device Logs' },
+    { icon: '🔨', name: 'CoreSimulator', path: '~/Library/Developer/CoreSimulator' },
+    { icon: '👁', name: 'QuickLook Cache', path: '~/Library/Caches/QuickLook' },
+    { icon: '📧', name: 'Mail Downloads', path: '~/Library/Mail Downloads' },
+    { icon: '🎧', name: 'Podcasts Cache', path: '~/Library/Containers/Podcasts' },
+    { icon: '🩺', name: 'Diagnostic Reports', path: '~/Library/Logs/DiagnosticReports' },
     { icon: '📋', name: 'User Logs', path: '~/Library/Logs' },
     { icon: '🗑', name: 'Trash', path: '~/.Trash' },
     { icon: '🌐', name: 'Browser Caches', path: '~/Library/**/Cache' },
@@ -111,8 +140,8 @@ export async function cleanCommand(options: CleanOptions): Promise<void> {
     { icon: '⬇️', name: 'Old Downloads', path: '~/Downloads' },
     { icon: '🍺', name: 'Homebrew Caches', path: '/Library/Caches/Homebrew' },
     { icon: '🐳', name: 'Docker Artifacts', path: '~/.docker' },
-    { icon: '📱', name: 'iOS Backups', path: '~/Library/Caches/com.apple.bird*' },
-    { icon: '❄️', name: 'Temporary Files', path: '/var/tmp, /tmp' },
+    { icon: '📲', name: 'iOS Backups', path: '~/Library/Caches/com.apple.bird*' },
+    { icon: '💾', name: 'Temporary Files', path: '/var/tmp, /tmp' },
     { icon: '🔗', name: 'Node Modules', path: 'Large node_modules directories' },
     { icon: '🔧', name: 'Old Installers', path: 'Failed/old installer files' },
   ];
@@ -134,6 +163,9 @@ export async function cleanCommand(options: CleanOptions): Promise<void> {
   });
 
   progress.finish('Scan complete');
+
+  // Print scanned directories summary
+  printScanDirectorySummary(summary.results);
 
   // Filter out empty results and apply whitelist
   let resultsWithItems = summary.results
