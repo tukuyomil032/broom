@@ -20,6 +20,7 @@ import {
 } from '../ui/output.js';
 import { confirmAction, selectItems } from '../ui/prompts.js';
 import { debug, debugSection, debugObj } from '../utils/debug.js';
+import { execWithTimeout } from '../utils/timeout.js';
 
 const execAsync = promisify(exec);
 
@@ -27,6 +28,7 @@ interface OptimizeOptions {
   dryRun?: boolean;
   yes?: boolean;
   all?: boolean;
+  skipProblematic?: boolean;
 }
 
 interface OptimizeTask {
@@ -34,6 +36,9 @@ interface OptimizeTask {
   name: string;
   description: string;
   requiresSudo: boolean;
+  timeout?: number;
+  shouldSkip?: () => Promise<boolean>;
+  runInBackground?: boolean;
   action: () => Promise<string>;
 }
 
@@ -46,20 +51,22 @@ const tasks: OptimizeTask[] = [
     name: 'Flush DNS Cache',
     description: 'Clear DNS resolver cache',
     requiresSudo: true,
+    timeout: 10000,
     action: async () => {
-      await execAsync('sudo dscacheutil -flushcache');
-      await execAsync('sudo killall -HUP mDNSResponder');
+      await execWithTimeout('sudo dscacheutil -flushcache', 10000);
+      await execWithTimeout('sudo killall -HUP mDNSResponder', 10000);
       return 'DNS cache flushed';
     },
   },
   {
     id: 'rebuild-spotlight',
     name: 'Rebuild Spotlight Index',
-    description: 'Rebuild the Spotlight search index (may take a while)',
+    description: 'Rebuild the Spotlight search index (runs in background)',
     requiresSudo: true,
+    runInBackground: true,
     action: async () => {
-      await execAsync('sudo mdutil -E /');
-      return 'Spotlight reindexing started';
+      await execAsync('sudo mdutil -E / &');
+      return 'Spotlight reindexing started in background';
     },
   },
   {
@@ -67,9 +74,11 @@ const tasks: OptimizeTask[] = [
     name: 'Rebuild Launch Services',
     description: 'Rebuild the Launch Services database',
     requiresSudo: false,
+    timeout: 60000,
     action: async () => {
-      await execAsync(
-        '/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -kill -r -domain local -domain system -domain user'
+      await execWithTimeout(
+        '/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -kill -r -domain local -domain system -domain user',
+        60000
       );
       return 'Launch Services database rebuilt';
     },
@@ -79,19 +88,24 @@ const tasks: OptimizeTask[] = [
     name: 'Purge Memory',
     description: 'Release inactive memory',
     requiresSudo: true,
+    timeout: 30000,
     action: async () => {
-      await execAsync('sudo purge');
+      await execWithTimeout('sudo purge', 30000);
       return 'Memory purged';
     },
   },
   {
     id: 'verify-disk',
     name: 'Verify Disk',
-    description: 'Verify the boot disk',
+    description: 'Verify the boot disk (may take 30+ seconds)',
     requiresSudo: false,
+    timeout: 30000,
     action: async () => {
-      const { stdout } = await execAsync('diskutil verifyVolume /');
-      return stdout.trim() || 'Disk verification completed';
+      const result = await execWithTimeout('diskutil verifyVolume /', 30000);
+      if (result.timedOut) {
+        return 'Disk verification timed out. Run manually: diskutil verifyVolume /';
+      }
+      return result.stdout.trim() || 'Disk verification completed';
     },
   },
   {
@@ -99,8 +113,9 @@ const tasks: OptimizeTask[] = [
     name: 'Clear Font Cache',
     description: 'Clear system font caches',
     requiresSudo: true,
+    timeout: 15000,
     action: async () => {
-      await execAsync('sudo atsutil databases -remove');
+      await execWithTimeout('sudo atsutil databases -remove', 15000);
       return 'Font caches cleared (restart may be required)';
     },
   },
@@ -120,9 +135,10 @@ const tasks: OptimizeTask[] = [
     name: 'Clear QuickLook Cache',
     description: 'Reset QuickLook server',
     requiresSudo: false,
+    timeout: 15000,
     action: async () => {
-      await execAsync('qlmanage -r cache');
-      await execAsync('qlmanage -r');
+      await execWithTimeout('qlmanage -r cache', 15000);
+      await execWithTimeout('qlmanage -r', 15000);
       return 'QuickLook cache cleared';
     },
   },
@@ -131,8 +147,9 @@ const tasks: OptimizeTask[] = [
     name: 'Reset Bluetooth Module',
     description: 'Reset the Bluetooth controller',
     requiresSudo: true,
+    timeout: 10000,
     action: async () => {
-      await execAsync('sudo pkill -9 bluetoothd || true');
+      await execWithTimeout('sudo pkill -9 bluetoothd || true', 10000);
       return 'Bluetooth module reset';
     },
   },
@@ -141,8 +158,9 @@ const tasks: OptimizeTask[] = [
     name: 'Flush Network Settings',
     description: 'Reset network interfaces',
     requiresSudo: true,
+    timeout: 15000,
     action: async () => {
-      await execAsync('sudo ifconfig en0 down && sudo ifconfig en0 up');
+      await execWithTimeout('sudo ifconfig en0 down && sudo ifconfig en0 up', 15000);
       return 'Network interface reset';
     },
   },
@@ -159,8 +177,14 @@ const tasks: OptimizeTask[] = [
   {
     id: 'enable-trim',
     name: 'Enable TRIM (SSD)',
-    description: 'Enable TRIM for non-Apple SSDs',
+    description:
+      'Enable TRIM for non-Apple SSDs (may cause issues - skipped with --skip-problematic)',
     requiresSudo: true,
+    shouldSkip: async () => {
+      warning('TRIM enable task has known hardware compatibility issues');
+      info('Run manually if needed: sudo trimforce enable');
+      return true;
+    },
     action: async () => {
       await execAsync('sudo trimforce enable');
       return 'TRIM enabled';
@@ -254,11 +278,24 @@ export async function optimizeCommand(options: OptimizeOptions): Promise<void> {
 
   let successCount = 0;
   let failCount = 0;
-  const results: { task: OptimizeTask; success: boolean; message: string }[] = [];
+  let skipCount = 0;
+  const results: { task: OptimizeTask; success: boolean; message: string; skipped?: boolean }[] =
+    [];
 
   for (const task of selectedTasks) {
     debug(`Executing task: ${task.id} - ${task.name}`);
     debug(`Requires sudo: ${task.requiresSudo}`);
+
+    // Check if task should be skipped
+    if (options.skipProblematic && task.shouldSkip) {
+      const shouldSkip = await task.shouldSkip();
+      if (shouldSkip) {
+        info(`Skipped: ${task.name} (problematic task)`);
+        results.push({ task, success: true, message: 'Skipped', skipped: true });
+        skipCount++;
+        continue;
+      }
+    }
 
     const spinner = createSpinner(`${task.name}...`);
 
@@ -271,16 +308,32 @@ export async function optimizeCommand(options: OptimizeOptions): Promise<void> {
     }
 
     try {
-      const message = await task.action();
-      debug(`Task ${task.id} completed: ${message}`);
-      succeedSpinner(spinner, `${task.name}: ${chalk.green(message)}`);
-      results.push({ task, success: true, message });
-      successCount++;
+      if (task.runInBackground) {
+        const message = await task.action();
+        debug(`Task ${task.id} started in background: ${message}`);
+        succeedSpinner(spinner, `${task.name}: ${chalk.cyan(message)}`);
+        results.push({ task, success: true, message });
+        successCount++;
+      } else {
+        const message = await task.action();
+        debug(`Task ${task.id} completed: ${message}`);
+        succeedSpinner(spinner, `${task.name}: ${chalk.green(message)}`);
+        results.push({ task, success: true, message });
+        successCount++;
+      }
     } catch (err) {
       const errorMsg = (err as Error).message || 'Unknown error';
       debug(`Task ${task.id} failed: ${errorMsg}`);
-      failSpinner(spinner, `${task.name}: ${chalk.red(errorMsg)}`);
-      results.push({ task, success: false, message: errorMsg });
+
+      // Provide helpful message for timeout
+      if (errorMsg.includes('timed out')) {
+        const timeoutMsg = `Timed out. Run manually if needed`;
+        failSpinner(spinner, `${task.name}: ${chalk.yellow(timeoutMsg)}`);
+        results.push({ task, success: false, message: timeoutMsg });
+      } else {
+        failSpinner(spinner, `${task.name}: ${chalk.red(errorMsg)}`);
+        results.push({ task, success: false, message: errorMsg });
+      }
       failCount++;
     }
   }
@@ -293,6 +346,10 @@ export async function optimizeCommand(options: OptimizeOptions): Promise<void> {
   console.log(chalk.bold('Optimization Summary'));
   console.log();
   console.log(`  ${chalk.green('✓')} Successful: ${chalk.green(successCount)}`);
+
+  if (skipCount > 0) {
+    console.log(`  ${chalk.yellow('⊘')} Skipped: ${chalk.yellow(skipCount)}`);
+  }
 
   if (failCount > 0) {
     console.log(`  ${chalk.red('✗')} Failed: ${chalk.red(failCount)}`);
@@ -309,6 +366,10 @@ export async function optimizeCommand(options: OptimizeOptions): Promise<void> {
   console.log(chalk.dim('  - Run optimization monthly for best performance'));
   console.log(chalk.dim('  - Some changes may require a restart to take effect'));
   console.log(chalk.dim('  - Use "broom clean" to free up disk space'));
+
+  if (failCount > 0) {
+    console.log(chalk.dim('  - Failed tasks can be run manually with the commands shown'));
+  }
 }
 
 /**
@@ -320,6 +381,7 @@ export function createOptimizeCommand(): Command {
     .option('-n, --dry-run', 'Preview only, no changes')
     .option('-y, --yes', 'Skip confirmation prompts')
     .option('-a, --all', 'Run all optimization tasks')
+    .option('--skip-problematic', 'Skip hardware-specific problematic tasks')
     .action(async (options) => {
       await optimizeCommand(options);
     });
