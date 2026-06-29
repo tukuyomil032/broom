@@ -1,9 +1,10 @@
 /**
  * completion command - Generate shell completion scripts
  */
-import { Command } from 'commander';
-import chalk from 'chalk';
-import { enhanceCommandHelp } from '../utils/help.js';
+
+import chalk from "chalk";
+import { Command } from "commander";
+import { enhanceCommandHelp } from "../utils/help.js";
 
 const BASH_COMPLETION = `# broom bash completion
 _broom_completions() {
@@ -489,257 +490,280 @@ complete -c broom -n '__fish_seen_subcommand_from reports' -s h -l help -d 'Disp
  * Print completion script for a shell
  */
 function printCompletion(shell: string): void {
-  switch (shell) {
-    case 'bash':
-      console.log(BASH_COMPLETION);
-      console.error(chalk.dim('\n# Add this to your ~/.bashrc or ~/.bash_profile:'));
-      console.error(chalk.dim('# eval "$(broom completion bash)"'));
-      break;
-    case 'zsh':
-      console.log(ZSH_COMPLETION);
-      console.error(chalk.dim('\n# Save to a file in your fpath, e.g.:'));
-      console.error(chalk.dim('# broom completion zsh > ~/.zsh/completions/_broom'));
-      console.error(chalk.dim('# Then add ~/.zsh/completions to your fpath in ~/.zshrc'));
-      break;
-    case 'fish':
-      console.log(FISH_COMPLETION);
-      console.error(chalk.dim('\n# Save to your fish completions directory:'));
-      console.error(chalk.dim('# broom completion fish > ~/.config/fish/completions/broom.fish'));
-      break;
-    default:
-      console.error(chalk.red(`Unknown shell: ${shell}`));
-      console.log('Supported shells: bash, zsh, fish');
-  }
+	switch (shell) {
+		case "bash":
+			console.log(BASH_COMPLETION);
+			console.error(
+				chalk.dim("\n# Add this to your ~/.bashrc or ~/.bash_profile:"),
+			);
+			console.error(chalk.dim('# eval "$(broom completion bash)"'));
+			break;
+		case "zsh":
+			console.log(ZSH_COMPLETION);
+			console.error(chalk.dim("\n# Save to a file in your fpath, e.g.:"));
+			console.error(
+				chalk.dim("# broom completion zsh > ~/.zsh/completions/_broom"),
+			);
+			console.error(
+				chalk.dim("# Then add ~/.zsh/completions to your fpath in ~/.zshrc"),
+			);
+			break;
+		case "fish":
+			console.log(FISH_COMPLETION);
+			console.error(chalk.dim("\n# Save to your fish completions directory:"));
+			console.error(
+				chalk.dim(
+					"# broom completion fish > ~/.config/fish/completions/broom.fish",
+				),
+			);
+			break;
+		default:
+			console.error(chalk.red(`Unknown shell: ${shell}`));
+			console.log("Supported shells: bash, zsh, fish");
+	}
 }
 
 /**
  * Detect current shell
  */
 function detectShell(): string {
-  return process.env.SHELL?.split('/').pop() || 'zsh';
+	return process.env.SHELL?.split("/").pop() || "zsh";
 }
 
 /**
  * Install completion automatically
  */
 async function installCompletion(): Promise<void> {
-  const { writeFile, mkdir, access, readFile, appendFile } = await import('fs/promises');
-  const { homedir } = await import('os');
-  const shell = detectShell();
+	const { writeFile, mkdir, readFile, appendFile } = await import(
+		"node:fs/promises"
+	);
+	const { homedir } = await import("node:os");
+	const shell = detectShell();
 
-  console.log(chalk.cyan(`\n🔧 Installing ${shell} completion...\n`));
+	console.log(chalk.cyan(`\n🔧 Installing ${shell} completion...\n`));
 
-  try {
-    if (shell === 'zsh') {
-      const completionDir = `${homedir()}/.zsh/completions`;
-      const completionFile = `${completionDir}/_broom`;
-      const zshrc = `${homedir()}/.zshrc`;
+	try {
+		if (shell === "zsh") {
+			const completionDir = `${homedir()}/.zsh/completions`;
+			const completionFile = `${completionDir}/_broom`;
+			const zshrc = `${homedir()}/.zshrc`;
 
-      // Create completion directory
-      await mkdir(completionDir, { recursive: true });
+			// Create completion directory
+			await mkdir(completionDir, { recursive: true });
 
-      // Write completion file
-      await writeFile(completionFile, ZSH_COMPLETION, 'utf-8');
-      console.log(chalk.green('✓ Completion file created'));
+			// Write completion file
+			await writeFile(completionFile, ZSH_COMPLETION, "utf-8");
+			console.log(chalk.green("✓ Completion file created"));
 
-      // Check if fpath is already configured
-      let zshrcContent = '';
-      try {
-        zshrcContent = await readFile(zshrc, 'utf-8');
-      } catch {
-        // .zshrc doesn't exist yet
-      }
+			// Check if fpath is already configured
+			let zshrcContent = "";
+			try {
+				zshrcContent = await readFile(zshrc, "utf-8");
+			} catch {
+				// .zshrc doesn't exist yet
+			}
 
-      if (!zshrcContent.includes('~/.zsh/completions')) {
-        await appendFile(
-          zshrc,
-          '\n# Broom completion\nfpath=(~/.zsh/completions $fpath)\nautoload -Uz compinit && compinit\n',
-          'utf-8'
-        );
-        console.log(chalk.green('✓ Added to ~/.zshrc'));
-      }
+			if (!zshrcContent.includes("~/.zsh/completions")) {
+				await appendFile(
+					zshrc,
+					"\n# Broom completion\nfpath=(~/.zsh/completions $fpath)\nautoload -Uz compinit && compinit\n",
+					"utf-8",
+				);
+				console.log(chalk.green("✓ Added to ~/.zshrc"));
+			}
 
-      console.log(chalk.green('\n✅ Installation complete!'));
-      console.log(chalk.dim('\nRun the following to activate:'));
-      console.log(chalk.yellow('  source ~/.zshrc\n'));
-      console.log(chalk.dim('Or restart your terminal.\n'));
-    } else if (shell === 'bash') {
-      const completionDir = `${homedir()}/.bash_completion.d`;
-      const completionFile = `${completionDir}/broom`;
-      const bashrc = `${homedir()}/.bashrc`;
+			console.log(chalk.green("\n✅ Installation complete!"));
+			console.log(chalk.dim("\nRun the following to activate:"));
+			console.log(chalk.yellow("  source ~/.zshrc\n"));
+			console.log(chalk.dim("Or restart your terminal.\n"));
+		} else if (shell === "bash") {
+			const completionDir = `${homedir()}/.bash_completion.d`;
+			const completionFile = `${completionDir}/broom`;
+			const bashrc = `${homedir()}/.bashrc`;
 
-      await mkdir(completionDir, { recursive: true });
-      await writeFile(completionFile, BASH_COMPLETION, 'utf-8');
-      console.log(chalk.green('✓ Completion file created'));
+			await mkdir(completionDir, { recursive: true });
+			await writeFile(completionFile, BASH_COMPLETION, "utf-8");
+			console.log(chalk.green("✓ Completion file created"));
 
-      let bashrcContent = '';
-      try {
-        bashrcContent = await readFile(bashrc, 'utf-8');
-      } catch {
-        // .bashrc doesn't exist
-      }
+			let bashrcContent = "";
+			try {
+				bashrcContent = await readFile(bashrc, "utf-8");
+			} catch {
+				// .bashrc doesn't exist
+			}
 
-      if (!bashrcContent.includes('.bash_completion.d/broom')) {
-        await appendFile(
-          bashrc,
-          '\n# Broom completion\nsource ~/.bash_completion.d/broom\n',
-          'utf-8'
-        );
-        console.log(chalk.green('✓ Added to ~/.bashrc'));
-      }
+			if (!bashrcContent.includes(".bash_completion.d/broom")) {
+				await appendFile(
+					bashrc,
+					"\n# Broom completion\nsource ~/.bash_completion.d/broom\n",
+					"utf-8",
+				);
+				console.log(chalk.green("✓ Added to ~/.bashrc"));
+			}
 
-      console.log(chalk.green('\n✅ Installation complete!'));
-      console.log(chalk.dim('\nRun the following to activate:'));
-      console.log(chalk.yellow('  source ~/.bashrc\n'));
-    } else if (shell === 'fish') {
-      const completionDir = `${homedir()}/.config/fish/completions`;
-      const completionFile = `${completionDir}/broom.fish`;
+			console.log(chalk.green("\n✅ Installation complete!"));
+			console.log(chalk.dim("\nRun the following to activate:"));
+			console.log(chalk.yellow("  source ~/.bashrc\n"));
+		} else if (shell === "fish") {
+			const completionDir = `${homedir()}/.config/fish/completions`;
+			const completionFile = `${completionDir}/broom.fish`;
 
-      await mkdir(completionDir, { recursive: true });
-      await writeFile(completionFile, FISH_COMPLETION, 'utf-8');
+			await mkdir(completionDir, { recursive: true });
+			await writeFile(completionFile, FISH_COMPLETION, "utf-8");
 
-      console.log(chalk.green('\n✅ Installation complete!'));
-      console.log(chalk.dim('\nFish automatically loads completions.\n'));
-      console.log(chalk.dim('Restart your terminal or run: exec fish\n'));
-    } else {
-      console.log(chalk.red(`\n❌ Unsupported shell: ${shell}`));
-      console.log(chalk.dim('Supported: bash, zsh, fish\n'));
-    }
-  } catch (error) {
-    console.log(chalk.red(`\n❌ Installation failed: ${error}\n`));
-  }
+			console.log(chalk.green("\n✅ Installation complete!"));
+			console.log(chalk.dim("\nFish automatically loads completions.\n"));
+			console.log(chalk.dim("Restart your terminal or run: exec fish\n"));
+		} else {
+			console.log(chalk.red(`\n❌ Unsupported shell: ${shell}`));
+			console.log(chalk.dim("Supported: bash, zsh, fish\n"));
+		}
+	} catch (error) {
+		console.log(chalk.red(`\n❌ Installation failed: ${error}\n`));
+	}
 }
 
 /**
  * Uninstall completion
  */
 async function uninstallCompletion(): Promise<void> {
-  const { unlink } = await import('fs/promises');
-  const { homedir } = await import('os');
-  const shell = detectShell();
+	const { unlink } = await import("node:fs/promises");
+	const { homedir } = await import("node:os");
+	const shell = detectShell();
 
-  console.log(chalk.cyan(`\n🗑️  Uninstalling ${shell} completion...\n`));
+	console.log(chalk.cyan(`\n🗑️  Uninstalling ${shell} completion...\n`));
 
-  try {
-    if (shell === 'zsh') {
-      const completionFile = `${homedir()}/.zsh/completions/_broom`;
-      await unlink(completionFile);
-      console.log(chalk.green('✅ Completion removed'));
-      console.log(
-        chalk.dim('\nNote: You may want to manually remove the fpath config from ~/.zshrc\n')
-      );
-    } else if (shell === 'bash') {
-      const completionFile = `${homedir()}/.bash_completion.d/broom`;
-      await unlink(completionFile);
-      console.log(chalk.green('✅ Completion removed'));
-      console.log(
-        chalk.dim('\nNote: You may want to manually remove the source line from ~/.bashrc\n')
-      );
-    } else if (shell === 'fish') {
-      const completionFile = `${homedir()}/.config/fish/completions/broom.fish`;
-      await unlink(completionFile);
-      console.log(chalk.green('✅ Completion removed\n'));
-    }
-  } catch {
-    console.log(chalk.yellow('⚠️  Completion file not found or already removed\n'));
-  }
+	try {
+		if (shell === "zsh") {
+			const completionFile = `${homedir()}/.zsh/completions/_broom`;
+			await unlink(completionFile);
+			console.log(chalk.green("✅ Completion removed"));
+			console.log(
+				chalk.dim(
+					"\nNote: You may want to manually remove the fpath config from ~/.zshrc\n",
+				),
+			);
+		} else if (shell === "bash") {
+			const completionFile = `${homedir()}/.bash_completion.d/broom`;
+			await unlink(completionFile);
+			console.log(chalk.green("✅ Completion removed"));
+			console.log(
+				chalk.dim(
+					"\nNote: You may want to manually remove the source line from ~/.bashrc\n",
+				),
+			);
+		} else if (shell === "fish") {
+			const completionFile = `${homedir()}/.config/fish/completions/broom.fish`;
+			await unlink(completionFile);
+			console.log(chalk.green("✅ Completion removed\n"));
+		}
+	} catch {
+		console.log(
+			chalk.yellow("⚠️  Completion file not found or already removed\n"),
+		);
+	}
 }
 
 /**
  * Check completion status
  */
 async function checkStatus(): Promise<void> {
-  const { access } = await import('fs/promises');
-  const { homedir } = await import('os');
-  const shell = detectShell();
+	const { access } = await import("node:fs/promises");
+	const { homedir } = await import("node:os");
+	const shell = detectShell();
 
-  console.log(chalk.cyan('\n📊 Completion Status\n'));
-  console.log(`Current shell: ${chalk.yellow(shell)}`);
+	console.log(chalk.cyan("\n📊 Completion Status\n"));
+	console.log(`Current shell: ${chalk.yellow(shell)}`);
 
-  let installed = false;
-  let location = '';
+	let installed = false;
+	let location = "";
 
-  try {
-    if (shell === 'zsh') {
-      location = `${homedir()}/.zsh/completions/_broom`;
-      await access(location);
-      installed = true;
-    } else if (shell === 'bash') {
-      location = `${homedir()}/.bash_completion.d/broom`;
-      await access(location);
-      installed = true;
-    } else if (shell === 'fish') {
-      location = `${homedir()}/.config/fish/completions/broom.fish`;
-      await access(location);
-      installed = true;
-    }
+	try {
+		if (shell === "zsh") {
+			location = `${homedir()}/.zsh/completions/_broom`;
+			await access(location);
+			installed = true;
+		} else if (shell === "bash") {
+			location = `${homedir()}/.bash_completion.d/broom`;
+			await access(location);
+			installed = true;
+		} else if (shell === "fish") {
+			location = `${homedir()}/.config/fish/completions/broom.fish`;
+			await access(location);
+			installed = true;
+		}
 
-    if (installed) {
-      console.log(chalk.green('✓ Completion is installed'));
-      console.log(chalk.dim(`  ${location}\n`));
-    }
-  } catch {
-    console.log(chalk.yellow('✗ Completion is not installed'));
-    console.log(chalk.dim('\nRun to install:'));
-    console.log(chalk.yellow('  broom completion install\n'));
-  }
+		if (installed) {
+			console.log(chalk.green("✓ Completion is installed"));
+			console.log(chalk.dim(`  ${location}\n`));
+		}
+	} catch {
+		console.log(chalk.yellow("✗ Completion is not installed"));
+		console.log(chalk.dim("\nRun to install:"));
+		console.log(chalk.yellow("  broom completion install\n"));
+	}
 }
 
 /**
  * Show completion help
  */
 function showCompletionHelp(): void {
-  console.log(chalk.bold('\n📝 Shell Completion\n'));
-  console.log('Enable tab completion for broom commands and options.\n');
-  console.log(chalk.bold('Usage:'));
-  console.log('  broom completion [command]\n');
-  console.log(chalk.bold('Commands:'));
-  console.log('  install     Install completion for your shell (automatic)');
-  console.log('  uninstall   Remove completion');
-  console.log('  status      Check if completion is installed');
-  console.log('  bash/zsh/fish  Print completion script for manual setup\n');
-  console.log(chalk.bold('Examples:'));
-  console.log(chalk.dim('  # Automatic installation (recommended)'));
-  console.log(chalk.yellow('  broom completion install\n'));
-  console.log(chalk.dim('  # Check status'));
-  console.log(chalk.yellow('  broom completion status\n'));
-  console.log(chalk.dim('  # Manual installation (advanced)'));
-  console.log(chalk.dim('  broom completion zsh > ~/.zsh/completions/_broom\n'));
+	console.log(chalk.bold("\n📝 Shell Completion\n"));
+	console.log("Enable tab completion for broom commands and options.\n");
+	console.log(chalk.bold("Usage:"));
+	console.log("  broom completion [command]\n");
+	console.log(chalk.bold("Commands:"));
+	console.log("  install     Install completion for your shell (automatic)");
+	console.log("  uninstall   Remove completion");
+	console.log("  status      Check if completion is installed");
+	console.log("  bash/zsh/fish  Print completion script for manual setup\n");
+	console.log(chalk.bold("Examples:"));
+	console.log(chalk.dim("  # Automatic installation (recommended)"));
+	console.log(chalk.yellow("  broom completion install\n"));
+	console.log(chalk.dim("  # Check status"));
+	console.log(chalk.yellow("  broom completion status\n"));
+	console.log(chalk.dim("  # Manual installation (advanced)"));
+	console.log(
+		chalk.dim("  broom completion zsh > ~/.zsh/completions/_broom\n"),
+	);
 }
 
 /**
  * Create completion command
  */
 export function createCompletionCommand(): Command {
-  const cmd = new Command('completion')
-    .description('Install shell completion for tab completion')
-    .argument('[action]', 'Action: install, uninstall, status, or shell type (bash/zsh/fish)')
-    .action(async (action?: string) => {
-      if (!action) {
-        showCompletionHelp();
-        return;
-      }
+	const cmd = new Command("completion")
+		.description("Install shell completion for tab completion")
+		.argument(
+			"[action]",
+			"Action: install, uninstall, status, or shell type (bash/zsh/fish)",
+		)
+		.action(async (action?: string) => {
+			if (!action) {
+				showCompletionHelp();
+				return;
+			}
 
-      switch (action) {
-        case 'install':
-          await installCompletion();
-          break;
-        case 'uninstall':
-          await uninstallCompletion();
-          break;
-        case 'status':
-          await checkStatus();
-          break;
-        case 'bash':
-        case 'zsh':
-        case 'fish':
-          printCompletion(action);
-          break;
-        default:
-          console.log(chalk.red(`\n❌ Unknown action: ${action}\n`));
-          showCompletionHelp();
-      }
-    });
+			switch (action) {
+				case "install":
+					await installCompletion();
+					break;
+				case "uninstall":
+					await uninstallCompletion();
+					break;
+				case "status":
+					await checkStatus();
+					break;
+				case "bash":
+				case "zsh":
+				case "fish":
+					printCompletion(action);
+					break;
+				default:
+					console.log(chalk.red(`\n❌ Unknown action: ${action}\n`));
+					showCompletionHelp();
+			}
+		});
 
-  return enhanceCommandHelp(cmd);
+	return enhanceCommandHelp(cmd);
 }

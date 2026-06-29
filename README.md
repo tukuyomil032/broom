@@ -466,8 +466,7 @@ Detailed documentation available in the `docs/` directory:
 
 ### Development
 
-- **ESLint** - Code linting
-- **Prettier** - Code formatting
+- **@biomejs/biome** - Code linting & formatting
 - **tsup** - TypeScript bundler
 - **bun** - Fast package manager (optional)
 
