@@ -1,39 +1,39 @@
 #!/usr/bin/env node
+import chalk from "chalk";
 /**
  * broom - macOS Disk Cleanup CLI
  *
  * A TypeScript rewrite of mole (https://github.com/tw93/Mole)
  * with modern features and interactive interface.
  */
-import { Command } from 'commander';
-import chalk from 'chalk';
+import { Command } from "commander";
 import {
-  createCleanCommand,
-  createUninstallCommand,
-  createOptimizeCommand,
-  createAnalyzeCommand,
-  createStatusCommand,
-  createPurgeCommand,
-  createInstallerCommand,
-  createTouchIdCommand,
-  createCompletionCommand,
-  createUpdateCommand,
-  createRemoveCommand,
-  createConfigCommand,
-  createDoctorCommand,
-  createBackupCommand,
-  createRestoreCommand,
-  createDuplicatesCommand,
-  createScheduleCommand,
-  createWatchCommand,
-  createReportsCommand,
-  createHelpCommand,
-  setCommandsList,
-} from './commands/index.js';
-import { enableDebug, debug } from './utils/debug.js';
-import { getGlobalOptionsTable } from './utils/help.js';
+	createAnalyzeCommand,
+	createBackupCommand,
+	createCleanCommand,
+	createCompletionCommand,
+	createConfigCommand,
+	createDoctorCommand,
+	createDuplicatesCommand,
+	createHelpCommand,
+	createInstallerCommand,
+	createOptimizeCommand,
+	createPurgeCommand,
+	createRemoveCommand,
+	createReportsCommand,
+	createRestoreCommand,
+	createScheduleCommand,
+	createStatusCommand,
+	createTouchIdCommand,
+	createUninstallCommand,
+	createUpdateCommand,
+	createWatchCommand,
+	setCommandsList,
+} from "./commands/index.js";
+import { debug, enableDebug } from "./utils/debug.js";
+import { getGlobalOptionsTable } from "./utils/help.js";
 
-const VERSION = '1.0.51';
+const VERSION = "1.0.51";
 
 // ASCII art logo
 const logo = chalk.cyan(`
@@ -47,12 +47,12 @@ const logo = chalk.cyan(`
 
 const description = `
 ${logo}
-${chalk.bold('🧹 macOS Disk Cleanup CLI')}
+${chalk.bold("🧹 macOS Disk Cleanup CLI")}
 
 Clean up your Mac with ease. Remove caches, logs, trash,
 browser data, dev artifacts, and more.
 
-${chalk.bold('Commands:')}
+${chalk.bold("Commands:")}
   clean       Scan and clean up disk space
   uninstall   Remove apps and their leftovers
   optimize    System maintenance and optimization
@@ -73,16 +73,16 @@ ${chalk.bold('Commands:')}
   watch       Monitor directory sizes
   reports     Manage cleanup reports
 
-${chalk.bold('Examples:')}
-  ${chalk.dim('$')} broom clean                    Interactive cleanup
-  ${chalk.dim('$')} broom clean --dry-run          Preview what would be cleaned
-  ${chalk.dim('$')} broom clean --all              Clean all categories
-  ${chalk.dim('$')} broom uninstall                Remove an app completely
-  ${chalk.dim('$')} broom optimize                 Run system optimization tasks
-  ${chalk.dim('$')} broom analyze                  See what's using disk space
-  ${chalk.dim('$')} broom analyze --path ~/Library Analyze a Library
-  ${chalk.dim('$')} broom status --watch           Live system monitoring
-  ${chalk.dim('$')} broom purge                    Clean project artifacts
+${chalk.bold("Examples:")}
+  ${chalk.dim("$")} broom clean                    Interactive cleanup
+  ${chalk.dim("$")} broom clean --dry-run          Preview what would be cleaned
+  ${chalk.dim("$")} broom clean --all              Clean all categories
+  ${chalk.dim("$")} broom uninstall                Remove an app completely
+  ${chalk.dim("$")} broom optimize                 Run system optimization tasks
+  ${chalk.dim("$")} broom analyze                  See what's using disk space
+  ${chalk.dim("$")} broom analyze --path ~/Library Analyze a Library
+  ${chalk.dim("$")} broom status --watch           Live system monitoring
+  ${chalk.dim("$")} broom purge                    Clean project artifacts
 
 ${getGlobalOptionsTable()}
 `;
@@ -91,22 +91,22 @@ ${getGlobalOptionsTable()}
 const program = new Command();
 
 program
-  .name('broom')
-  .version(VERSION, '-v, --version', 'Output the current version')
-  .description(description)
-  .option('--debug', 'Enable debug mode with detailed logs')
-  .helpOption('-h, --help', 'Display help for command')
-  .hook('preAction', (thisCommand) => {
-    const opts = thisCommand.opts();
-    if (opts.debug) {
-      enableDebug();
-      debug('Debug mode enabled');
-      debug(`Version: ${VERSION}`);
-      debug(`Node: ${process.version}`);
-      debug(`Platform: ${process.platform} ${process.arch}`);
-      debug(`Args: ${process.argv.slice(2).join(' ')}`);
-    }
-  });
+	.name("broom")
+	.version(VERSION, "-v, --version", "Output the current version")
+	.description(description)
+	.option("--debug", "Enable debug mode with detailed logs")
+	.helpOption("-h, --help", "Display help for command")
+	.hook("preAction", (thisCommand) => {
+		const opts = thisCommand.opts();
+		if (opts.debug) {
+			enableDebug();
+			debug("Debug mode enabled");
+			debug(`Version: ${VERSION}`);
+			debug(`Node: ${process.version}`);
+			debug(`Platform: ${process.platform} ${process.arch}`);
+			debug(`Args: ${process.argv.slice(2).join(" ")}`);
+		}
+	});
 
 // Register commands
 const helpCommand = createHelpCommand();
@@ -133,25 +133,25 @@ program.addCommand(createReportsCommand());
 
 // Set the commands list for the help command
 setCommandsList([
-  createCleanCommand(),
-  createUninstallCommand(),
-  createOptimizeCommand(),
-  createAnalyzeCommand(),
-  createStatusCommand(),
-  createPurgeCommand(),
-  createInstallerCommand(),
-  createTouchIdCommand(),
-  createCompletionCommand(),
-  createUpdateCommand(),
-  createRemoveCommand(),
-  createConfigCommand(),
-  createDoctorCommand(),
-  createBackupCommand(),
-  createRestoreCommand(),
-  createDuplicatesCommand(),
-  createScheduleCommand(),
-  createWatchCommand(),
-  createReportsCommand(),
+	createCleanCommand(),
+	createUninstallCommand(),
+	createOptimizeCommand(),
+	createAnalyzeCommand(),
+	createStatusCommand(),
+	createPurgeCommand(),
+	createInstallerCommand(),
+	createTouchIdCommand(),
+	createCompletionCommand(),
+	createUpdateCommand(),
+	createRemoveCommand(),
+	createConfigCommand(),
+	createDoctorCommand(),
+	createBackupCommand(),
+	createRestoreCommand(),
+	createDuplicatesCommand(),
+	createScheduleCommand(),
+	createWatchCommand(),
+	createReportsCommand(),
 ]);
 
 // Parse arguments
@@ -159,5 +159,5 @@ program.parse(process.argv);
 
 // Show help if no command provided (only if no subcommand was executed)
 if (process.argv.length === 2) {
-  console.log(description);
+	console.log(description);
 }
