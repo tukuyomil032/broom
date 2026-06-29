@@ -1,101 +1,101 @@
 /**
  * HTML Report Generator
  */
-import Handlebars from 'handlebars';
-import { formatSize } from '../utils/fs.js';
-import { writeFile, mkdir } from 'fs/promises';
-import { join, dirname } from 'path';
-import { expandPath } from '../utils/fs.js';
+
+import { mkdir, writeFile } from "node:fs/promises";
+import { dirname } from "node:path";
+import Handlebars from "handlebars";
+import { formatSize } from "../utils/fs.js";
 
 export interface CleanupReport {
-  metadata: {
-    generatedAt: Date;
-    broomVersion: string;
-    command: string;
-    hostname: string;
-    username: string;
-  };
-  summary: {
-    totalFilesDeleted: number;
-    totalSpaceFreed: number;
-    timeElapsed: number;
-    status: 'success' | 'partial' | 'failed';
-    errors: string[];
-  };
-  categories: Array<{
-    name: string;
-    filesDeleted: number;
-    spaceFreed: number;
-    percentage: number;
-    color: string;
-  }>;
-  files: Array<{
-    path: string;
-    size: number;
-    category: string;
-    deletedAt: Date;
-  }>;
-  diskComparison: {
-    before: {
-      total: number;
-      used: number;
-      free: number;
-      percentage: number;
-    };
-    after: {
-      total: number;
-      used: number;
-      free: number;
-      percentage: number;
-    };
-  };
+	metadata: {
+		generatedAt: Date;
+		broomVersion: string;
+		command: string;
+		hostname: string;
+		username: string;
+	};
+	summary: {
+		totalFilesDeleted: number;
+		totalSpaceFreed: number;
+		timeElapsed: number;
+		status: "success" | "partial" | "failed";
+		errors: string[];
+	};
+	categories: Array<{
+		name: string;
+		filesDeleted: number;
+		spaceFreed: number;
+		percentage: number;
+		color: string;
+	}>;
+	files: Array<{
+		path: string;
+		size: number;
+		category: string;
+		deletedAt: Date;
+	}>;
+	diskComparison: {
+		before: {
+			total: number;
+			used: number;
+			free: number;
+			percentage: number;
+		};
+		after: {
+			total: number;
+			used: number;
+			free: number;
+			percentage: number;
+		};
+	};
 }
 
 // Register Handlebars helpers
-Handlebars.registerHelper('formatSize', (bytes: number) => {
-  return formatSize(bytes);
+Handlebars.registerHelper("formatSize", (bytes: number) => {
+	return formatSize(bytes);
 });
 
-Handlebars.registerHelper('formatDate', (date: Date) => {
-  return new Date(date).toLocaleString('ja-JP');
+Handlebars.registerHelper("formatDate", (date: Date) => {
+	return new Date(date).toLocaleString("ja-JP");
 });
 
-Handlebars.registerHelper('formatDuration', (ms: number) => {
-  const seconds = Math.floor(ms / 1000);
-  const minutes = Math.floor(seconds / 60);
-  const hours = Math.floor(minutes / 60);
+Handlebars.registerHelper("formatDuration", (ms: number) => {
+	const seconds = Math.floor(ms / 1000);
+	const minutes = Math.floor(seconds / 60);
+	const hours = Math.floor(minutes / 60);
 
-  if (hours > 0) {
-    return `${hours}時間${minutes % 60}分${seconds % 60}秒`;
-  } else if (minutes > 0) {
-    return `${minutes}分${seconds % 60}秒`;
-  } else {
-    return `${seconds}秒`;
-  }
+	if (hours > 0) {
+		return `${hours}時間${minutes % 60}分${seconds % 60}秒`;
+	} else if (minutes > 0) {
+		return `${minutes}分${seconds % 60}秒`;
+	} else {
+		return `${seconds}秒`;
+	}
 });
 
-Handlebars.registerHelper('toFixed', (num: number, decimals: number) => {
-  return num.toFixed(decimals);
+Handlebars.registerHelper("toFixed", (num: number, decimals: number) => {
+	return num.toFixed(decimals);
 });
 
-Handlebars.registerHelper('json', (obj: any) => {
-  return JSON.stringify(obj);
+Handlebars.registerHelper("json", (obj: unknown) => {
+	return JSON.stringify(obj);
 });
 
 // Comparison helper
-Handlebars.registerHelper('eq', (a: any, b: any) => {
-  return a === b;
+Handlebars.registerHelper("eq", (a: unknown, b: unknown) => {
+	return a === b;
 });
 
 // Greater than helper
-Handlebars.registerHelper('gt', (a: number, b: number) => {
-  return a > b;
+Handlebars.registerHelper("gt", (a: number, b: number) => {
+	return a > b;
 });
 
 // Map helper - extract property from array
-Handlebars.registerHelper('map', (array: any[], property: string) => {
-  if (!Array.isArray(array)) return [];
-  return array.map((item) => item[property]);
+Handlebars.registerHelper("map", (array: unknown[], property: string) => {
+	if (!Array.isArray(array)) return [];
+	return (array as Record<string, unknown>[]).map((item) => item[property]);
 });
 
 const HTML_TEMPLATE = `<!DOCTYPE html>
@@ -358,126 +358,145 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
 </html>`;
 
 export class ReportGenerator {
-  private startTime: Date;
-  private deletedFiles: Array<{
-    path: string;
-    size: number;
-    category: string;
-    deletedAt: Date;
-  }> = [];
-  private categories = new Map<
-    string,
-    { filesDeleted: number; spaceFreed: number; color: string }
-  >();
-  private beforeDisk: { total: number; used: number; free: number; percentage: number } | null =
-    null;
+	private startTime: Date;
+	private deletedFiles: Array<{
+		path: string;
+		size: number;
+		category: string;
+		deletedAt: Date;
+	}> = [];
+	private categories = new Map<
+		string,
+		{ filesDeleted: number; spaceFreed: number; color: string }
+	>();
+	private beforeDisk: {
+		total: number;
+		used: number;
+		free: number;
+		percentage: number;
+	} | null = null;
 
-  constructor() {
-    this.startTime = new Date();
-  }
+	constructor() {
+		this.startTime = new Date();
+	}
 
-  /**
-   * Record disk state before cleanup
-   */
-  recordDiskBefore(disk: { total: number; used: number; free: number; percentage: number }) {
-    this.beforeDisk = disk;
-  }
+	/**
+	 * Record disk state before cleanup
+	 */
+	recordDiskBefore(disk: {
+		total: number;
+		used: number;
+		free: number;
+		percentage: number;
+	}) {
+		this.beforeDisk = disk;
+	}
 
-  /**
-   * Record a file deletion
-   */
-  recordDeletion(file: string, size: number, category: string) {
-    this.deletedFiles.push({
-      path: file,
-      size,
-      category,
-      deletedAt: new Date(),
-    });
+	/**
+	 * Record a file deletion
+	 */
+	recordDeletion(file: string, size: number, category: string) {
+		this.deletedFiles.push({
+			path: file,
+			size,
+			category,
+			deletedAt: new Date(),
+		});
 
-    // Update category stats
-    const existing = this.categories.get(category) || {
-      filesDeleted: 0,
-      spaceFreed: 0,
-      color: this.getCategoryColor(category),
-    };
-    existing.filesDeleted++;
-    existing.spaceFreed += size;
-    this.categories.set(category, existing);
-  }
+		// Update category stats
+		const existing = this.categories.get(category) || {
+			filesDeleted: 0,
+			spaceFreed: 0,
+			color: this.getCategoryColor(category),
+		};
+		existing.filesDeleted++;
+		existing.spaceFreed += size;
+		this.categories.set(category, existing);
+	}
 
-  /**
-   * Get color for category
-   */
-  private getCategoryColor(category: string): string {
-    const colors: Record<string, string> = {
-      'User Cache': '#3B82F6',
-      'Browser Cache': '#10B981',
-      Logs: '#F59E0B',
-      Trash: '#EF4444',
-      'Dev Cache': '#8B5CF6',
-      Xcode: '#EC4899',
-      Installer: '#6366F1',
-      Downloads: '#F97316',
-    };
-    return colors[category] || '#6B7280';
-  }
+	/**
+	 * Get color for category
+	 */
+	private getCategoryColor(category: string): string {
+		const colors: Record<string, string> = {
+			"User Cache": "#3B82F6",
+			"Browser Cache": "#10B981",
+			Logs: "#F59E0B",
+			Trash: "#EF4444",
+			"Dev Cache": "#8B5CF6",
+			Xcode: "#EC4899",
+			Installer: "#6366F1",
+			Downloads: "#F97316",
+		};
+		return colors[category] || "#6B7280";
+	}
 
-  /**
-   * Generate HTML report
-   */
-  async generate(
-    outputPath: string,
-    afterDisk: { total: number; used: number; free: number; percentage: number }
-  ): Promise<void> {
-    const { hostname } = await import('os');
-    const { execSync } = await import('child_process');
+	/**
+	 * Generate HTML report
+	 */
+	async generate(
+		outputPath: string,
+		afterDisk: {
+			total: number;
+			used: number;
+			free: number;
+			percentage: number;
+		},
+	): Promise<void> {
+		const { hostname } = await import("node:os");
+		const { execSync } = await import("node:child_process");
 
-    const username = execSync('whoami').toString().trim();
+		const username = execSync("whoami").toString().trim();
 
-    // Calculate summary
-    const totalSpaceFreed = this.deletedFiles.reduce((sum, f) => sum + f.size, 0);
-    const timeElapsed = Date.now() - this.startTime.getTime();
+		// Calculate summary
+		const totalSpaceFreed = this.deletedFiles.reduce(
+			(sum, f) => sum + f.size,
+			0,
+		);
+		const timeElapsed = Date.now() - this.startTime.getTime();
 
-    // Prepare category data
-    const categoryData = Array.from(this.categories.entries()).map(([name, data]) => ({
-      name,
-      filesDeleted: data.filesDeleted,
-      spaceFreed: data.spaceFreed,
-      percentage: (data.spaceFreed / totalSpaceFreed) * 100,
-      color: data.color,
-    }));
+		// Prepare category data
+		const categoryData = Array.from(this.categories.entries()).map(
+			([name, data]) => ({
+				name,
+				filesDeleted: data.filesDeleted,
+				spaceFreed: data.spaceFreed,
+				percentage: (data.spaceFreed / totalSpaceFreed) * 100,
+				color: data.color,
+			}),
+		);
 
-    const report: CleanupReport = {
-      metadata: {
-        generatedAt: new Date(),
-        broomVersion: '1.0.0',
-        command: process.argv.slice(2).join(' '),
-        hostname: hostname(),
-        username,
-      },
-      summary: {
-        totalFilesDeleted: this.deletedFiles.length,
-        totalSpaceFreed,
-        timeElapsed,
-        status: 'success',
-        errors: [],
-      },
-      categories: categoryData,
-      files: this.deletedFiles,
-      diskComparison: {
-        before: this.beforeDisk || afterDisk,
-        after: afterDisk,
-      },
-    };
+		const report: CleanupReport = {
+			metadata: {
+				generatedAt: new Date(),
+				broomVersion: "1.0.0",
+				command: process.argv.slice(2).join(" "),
+				hostname: hostname(),
+				username,
+			},
+			summary: {
+				totalFilesDeleted: this.deletedFiles.length,
+				totalSpaceFreed,
+				timeElapsed,
+				status: "success",
+				errors: [],
+			},
+			categories: categoryData,
+			files: this.deletedFiles,
+			diskComparison: {
+				before: this.beforeDisk || afterDisk,
+				after: afterDisk,
+			},
+		};
 
-    // Compile template
-    const template = Handlebars.compile(HTML_TEMPLATE);
-    const html = template(report);
+		// Compile template
+		const template = Handlebars.compile(HTML_TEMPLATE);
+		const html = template(report);
 
-    // Ensure directory exists
-    await mkdir(dirname(outputPath), { recursive: true });
+		// Ensure directory exists
+		await mkdir(dirname(outputPath), { recursive: true });
 
-    // Write HTML file
-    await writeFile(outputPath, html, 'utf-8');
-  }
+		// Write HTML file
+		await writeFile(outputPath, html, "utf-8");
+	}
 }
